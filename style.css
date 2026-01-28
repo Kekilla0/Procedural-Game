@@ -1,0 +1,59 @@
+html, body {
+  margin: 0;
+  padding: 0;
+  background: #0f1115;
+  color: #e8e8e8;
+  font-family: system-ui, -apple-system, Segoe UI, Roboto, sans-serif;
+}
+
+.app {
+  display: grid;
+  grid-template-rows: auto 1fr;
+  height: 100vh;
+}
+
+.hud {
+  padding: 10px 14px;
+  border-bottom: 1px solid #2a2f3a;
+  background: #121521;
+}
+
+.hud .row {
+  display: flex;
+  gap: 20px;
+  margin-top: 6px;
+  font-size: 14px;
+  opacity: 0.95;
+  flex-wrap: wrap;
+}
+
+.topRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.rotateBtns {
+  display: flex;
+  gap: 8px;
+}
+
+.rotateBtns button {
+  background: #1a2030;
+  border: 1px solid #2a2f3a;
+  color: #e8e8e8;
+  padding: 6px 10px;
+  border-radius: 8px;
+  cursor: pointer;
+}
+
+.rotateBtns button:hover {
+  filter: brightness(1.15);
+}
+
+canvas {
+  display: block;
+  margin: 0 auto;
+  background: #0f1115;
+}

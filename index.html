@@ -1,0 +1,38 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Hex Engine Milestone 1</title>
+  <link rel="stylesheet" href="./style.css" />
+</head>
+<body>
+  <div class="app">
+    <div class="hud">
+      <div class="topRow">
+        <div><strong>Milestone 1</strong> — Hex grid + dot + rotation + camera follow</div>
+        <div class="rotateBtns">
+          <button id="rotLeft" title="Rotate Left (Q)">◀</button>
+          <button id="rotRight" title="Rotate Right (E)">▶</button>
+        </div>
+      </div>
+
+      <div class="row">
+        <div>Move: W E / A D / Z X</div>
+        <div>Rotate: Q / E</div>
+        <div>Click: move to hex</div>
+      </div>
+
+      <div class="row">
+        <div>Rotation: <span id="rotLabel">0°</span></div>
+        <div>Hex: <span id="tileLabel">—</span></div>
+        <div>Dot: <span id="posLabel">—</span></div>
+      </div>
+    </div>
+
+    <canvas id="game" width="1100" height="700"></canvas>
+  </div>
+
+  <script type="module" src="./src/main.js"></script>
+</body>
+</html>
