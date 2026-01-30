@@ -1,59 +1,56 @@
-html, body {
-  margin: 0;
-  padding: 0;
-  background: #0f1115;
-  color: #e8e8e8;
-  font-family: system-ui, -apple-system, Segoe UI, Roboto, sans-serif;
-}
+    html, body {
+      margin: 0;
+      padding: 0;
+      background: #0e0e12;
+      color: #ddd;
+      font-family: system-ui, sans-serif;
+    }
 
-.app {
-  display: grid;
-  grid-template-rows: auto 1fr;
-  height: 100vh;
-}
+    #stage {
+      position: relative;
+      width: 1200px;   /* must match Data.DefaultViewport */
+      height: 600px;   /* must match Data.DefaultViewport */
+      margin: 20px auto 10px;
+      border: 1px solid #333;
+      background: #111;
+      overflow: hidden;
+    }
 
-.hud {
-  padding: 10px 14px;
-  border-bottom: 1px solid #2a2f3a;
-  background: #121521;
-}
+    #stage canvas {
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      image-rendering: crisp-edges;
+      image-rendering: pixelated;
+    }
 
-.hud .row {
-  display: flex;
-  gap: 20px;
-  margin-top: 6px;
-  font-size: 14px;
-  opacity: 0.95;
-  flex-wrap: wrap;
-}
+    /* Only top layer receives pointer events (later) */
+    #bg, #walls, #doors, #interactables { pointer-events: none; }
+    #tokens { pointer-events: auto; }
 
-.topRow {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 12px;
-}
+    #ui {
+      width: 1200px;
+      margin: 0 auto 16px;
+      display: flex;
+      gap: 16px;
+      align-items: center;
+      font-size: 14px;
+    }
 
-.rotateBtns {
-  display: flex;
-  gap: 8px;
-}
+    #ui span {
+      min-width: 140px;
+      opacity: 0.95;
+    }
 
-.rotateBtns button {
-  background: #1a2030;
-  border: 1px solid #2a2f3a;
-  color: #e8e8e8;
-  padding: 6px 10px;
-  border-radius: 8px;
-  cursor: pointer;
-}
+    button {
+      background: #222;
+      color: #ddd;
+      border: 1px solid #444;
+      padding: 4px 10px;
+      cursor: pointer;
+    }
 
-.rotateBtns button:hover {
-  filter: brightness(1.15);
-}
-
-canvas {
-  display: block;
-  margin: 0 auto;
-  background: #0f1115;
-}
+    button:hover {
+      background: #333;
+    }
