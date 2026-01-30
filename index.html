@@ -1,36 +1,89 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>Hex Engine Milestone 1</title>
-  <link rel="stylesheet" href="./style.css" />
+  <meta charset="UTF-8" />
+  <title>Hex Engine (Milestone 1)</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+  <style>
+    html, body {
+      margin: 0;
+      padding: 0;
+      background: #0e0e12;
+      color: #ddd;
+      font-family: system-ui, sans-serif;
+    }
+
+    #stage {
+      position: relative;
+      width: 1200px;   /* must match Data.DefaultViewport */
+      height: 600px;   /* must match Data.DefaultViewport */
+      margin: 20px auto 10px;
+      border: 1px solid #333;
+      background: #111;
+      overflow: hidden;
+    }
+
+    #stage canvas {
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      image-rendering: crisp-edges;
+      image-rendering: pixelated;
+    }
+
+    /* Only top layer receives pointer events (later) */
+    #bg, #walls, #doors, #interactables { pointer-events: none; }
+    #tokens { pointer-events: auto; }
+
+    #ui {
+      width: 1200px;
+      margin: 0 auto 16px;
+      display: flex;
+      gap: 16px;
+      align-items: center;
+      font-size: 14px;
+    }
+
+    #ui span {
+      min-width: 140px;
+      opacity: 0.95;
+    }
+
+    button {
+      background: #222;
+      color: #ddd;
+      border: 1px solid #444;
+      padding: 4px 10px;
+      cursor: pointer;
+    }
+
+    button:hover {
+      background: #333;
+    }
+  </style>
 </head>
 <body>
-  <div class="app">
-    <div class="hud">
-      <div class="topRow">
-        <div><strong>Milestone 1</strong> — Hex grid + dot + rotation + camera follow</div>
-        <div class="rotateBtns">
-          <button id="rotLeft" title="Rotate Left (Q)">◀</button>
-          <button id="rotRight" title="Rotate Right (E)">▶</button>
-        </div>
-      </div>
 
-      <div class="row">
-        <div>Move: W E / A D / Z X</div>
-        <div>Rotate: Q / E</div>
-        <div>Click: move to hex</div>
-      </div>
+  <div id="stage">
+    <canvas id="bg"></canvas>
+    <canvas id="walls"></canvas>
+    <canvas id="doors"></canvas>
+    <canvas id="interactables"></canvas>
+    <canvas id="tokens"></canvas>
+  </div>
 
-      <div class="row">
-        <div>Rotation: <span id="rotLabel">0°</span></div>
-        <div>Hex: <span id="tileLabel">—</span></div>
-        <div>Dot: <span id="posLabel">—</span></div>
-      </div>
-    </div>
+  <div id="ui">
+    <span id="posLabel">(?, ?, ?)</span>
+    <span id="rotLabel">rot 0</span>
 
-    <canvas id="game" width="1100" height="700"></canvas>
+    <button id="rotLeft">⟲ Q</button>
+    <button id="rotRight">E ⟳</button>
+
+    <span style="opacity:0.8;">
+      Move: W/NW, C/NE, A/W, D/E, Z/SW, S/SE (or arrows + Home/End)
+    </span>
   </div>
 
   <script type="module" src="./src/main.js"></script>

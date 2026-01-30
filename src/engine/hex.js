@@ -48,6 +48,7 @@ export function cubeRotateCCW(c) {
 export function cubeAdd(a, b) {
   return { x: a.x + b.x, y: a.y + b.y, z: a.z + b.z };
 }
+
 export function cubeSub(a, b) {
   return { x: a.x - b.x, y: a.y - b.y, z: a.z - b.z };
 }
