@@ -22,20 +22,13 @@ export class Player extends Token {
    * @param {number} [options.row] - Grid row position
    */
   constructor(x, y, width, height, options = {}) {
-    // Call Token constructor with player defaults
+    // Call Token constructor with player defaults from constants
     super(x, y, width, height, {
       ...options,
-      name: 'Player',
-      color: '#0000FF', // Blue
-      stats: {
-        strength: 0,
-        dexterity: 0,
-        intelligence: 0
-      }
+      name: options.name || DATA.PLAYER.NAME,
+      color: options.color || DATA.PLAYER.COLOR,
+      stats: options.stats || DATA.PLAYER.BASE_STATS
     });
-    
-    // Movement tracking for turns
-    this.movementRemaining = this.movement; // Current movement left this turn
     
     logger.info('Player created:', {
       position: `(${this.col}, ${this.row})`,
@@ -80,47 +73,6 @@ export class Player extends Token {
     }
     
     return range;
-  }
-  
-  /**
-   * Start a new turn - reset movement
-   */
-  startTurn() {
-    this.movementRemaining = this.movement;
-    logger.debug(`Player turn started. Movement: ${this.movementRemaining}`);
-  }
-  
-  /**
-   * Move player in a direction (overrides Token.move to consume movement)
-   * @param {string} direction - Direction to move ('up', 'down', 'left', 'right')
-   * @returns {boolean} True if moved, false if blocked or no movement remaining
-   */
-  move(direction) {
-    // Check if player has movement remaining
-    if (this.movementRemaining < 1) {
-      logger.debug('No movement remaining this turn');
-      return false;
-    }
-    
-    // Try to move using parent method
-    const moved = super.move(direction);
-    
-    // If successfully moved, consume 1 movement
-    if (moved) {
-      this.movementRemaining -= 1;
-      logger.debug(`Movement consumed. Remaining: ${this.movementRemaining}`);
-      
-      // In DEBUG mode, auto-reset movement after 1 second when it reaches 0
-      if (DATA.DEBUG && this.movementRemaining === 0) {
-        logger.debug('DEBUG: Movement will reset in 1 second');
-        setTimeout(() => {
-          this.startTurn();
-          logger.debug('DEBUG: Movement auto-reset');
-        }, 1000);
-      }
-    }
-    
-    return moved;
   }
   
   /**

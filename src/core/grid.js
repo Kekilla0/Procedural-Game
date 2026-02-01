@@ -9,6 +9,7 @@ import { Renderable } from './renderable.js';
 import { DATA } from '../data/constants.js';
 import { logger } from '../utils/logger.js';
 import { cartesianToIso } from '../utils/projection.js';
+import { rotatePixelPosition } from '../utils/rotation.js';
 
 export class Grid extends Renderable {
   /**
@@ -51,7 +52,7 @@ export class Grid extends Renderable {
    * @param {string} viewMode - Current view mode ('2D' or 'ISOMETRIC')
    * @param {Array} movementRange - Optional array of {col, row} tiles to highlight
    */
-  render(graphics, viewMode = '2D', movementRange = []) {
+  render(graphics, viewMode = '2D', movementRange = [], rotation = 0) {
     // No debug outline for grid (not needed)
     
     // Convert hex color string to Phaser number format
@@ -61,9 +62,11 @@ export class Grid extends Renderable {
     graphics.lineStyle(this.lineWidth, colorNumber);
     
     if (viewMode === 'ISOMETRIC') {
+      // Isometric mode ignores rotation
       this.renderIsometric(graphics, colorNumber, movementRange);
     } else {
-      this.render2D(graphics, movementRange);
+      // 2D mode supports rotation
+      this.render2D(graphics, movementRange, rotation);
     }
   }
   
@@ -71,17 +74,28 @@ export class Grid extends Renderable {
    * Render 2D grid (square tiles)
    * @param {Phaser.GameObjects.Graphics} graphics - Phaser graphics object
    * @param {Array} movementRange - Array of {col, row} tiles to highlight
+   * @param {number} rotation - Map rotation in degrees (0/90/180/270)
    */
-  render2D(graphics, movementRange = []) {
+  render2D(graphics, movementRange = [], rotation = 0) {
     // First, render movement highlights (before grid lines)
+    // Note: Grid lines themselves don't rotate, but highlights do
     if (movementRange.length > 0) {
       for (const tile of movementRange) {
-        const x = this.x + (tile.col * this.size);
-        const y = this.y + (tile.row * this.size);
+        // Apply rotation to tile position
+        const rotated = rotatePixelPosition(
+          tile.col * this.size,
+          tile.row * this.size,
+          rotation,
+          this.width,
+          this.height
+        );
+        
+        const x = this.x + rotated.x;
+        const y = this.y + rotated.y;
         
         if (tile.isHovered) {
           // Hovered tile - use mouse hover color
-          logger.debug(`2D: Rendering HOVERED tile (${tile.col}, ${tile.row}) - Color: ${DATA.MOUSE.HOVER_COLOR.toString(16)}, Opacity: ${DATA.MOUSE.HOVER_OPACITY}`);
+          logger.debug(`2D: Rendering HOVERED tile (${tile.col}, ${tile.row}) at rotated position (${x}, ${y})`);
           graphics.fillStyle(DATA.MOUSE.HOVER_COLOR, DATA.MOUSE.HOVER_OPACITY);
         } else {
           // Regular movement range - use movement range color

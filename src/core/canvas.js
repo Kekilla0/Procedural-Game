@@ -41,8 +41,9 @@ export class Canvas extends Renderable {
    * @param {Phaser.GameObjects.Graphics} graphics - Phaser graphics object to draw to
    * @param {string} viewMode - Current view mode ('2D' or 'ISOMETRIC')
    * @param {Array} movementRange - Optional array of tiles to highlight for movement
+   * @param {number} rotation - Map rotation in degrees (2D only, 0/90/180/270)
    */
-  render(graphics, viewMode = '2D', movementRange = []) {
+  render(graphics, viewMode = '2D', movementRange = [], rotation = 0) {
     // Store current view mode
     this.viewMode = viewMode;
     
@@ -86,23 +87,24 @@ export class Canvas extends Renderable {
       logger.debug("Image rendering not yet implemented");
     }
     
-    // Render grid layer - pass viewMode and movement range
+    // Render grid layer - pass viewMode, movement range, and rotation
     if (this.layers.grid) {
-      this.layers.grid.render(graphics, viewMode, movementRange);
+      this.layers.grid.render(graphics, viewMode, movementRange, rotation);
     }
     
-    // Render tokens layer - pass viewMode so tokens can position isometrically
-    this.renderTokens(graphics, viewMode);
+    // Render tokens layer - pass viewMode and rotation
+    this.renderTokens(graphics, viewMode, rotation);
   }
   
   /**
    * Render all tokens in the tokens layer
    * @param {Phaser.GameObjects.Graphics} graphics - Phaser graphics object to draw to
    * @param {string} viewMode - Current view mode ('2D' or 'ISOMETRIC')
+   * @param {number} rotation - Map rotation in degrees (2D only, 0/90/180/270)
    */
-  renderTokens(graphics, viewMode = '2D') {
+  renderTokens(graphics, viewMode = '2D', rotation = 0) {
     for (const token of this.layers.tokens) {
-      token.render(graphics, viewMode);
+      token.render(graphics, viewMode, rotation, this.layers.grid);
     }
   }
   

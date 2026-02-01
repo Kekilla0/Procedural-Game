@@ -9,6 +9,7 @@
 
 import { Canvas } from './canvas.js';
 import { Player } from './player.js';
+import { Enemy } from './enemy.js';
 import { Camera } from './camera.js';
 import { DATA } from '../data/constants.js';
 import { logger } from '../utils/logger.js';
@@ -19,6 +20,9 @@ export class Game extends Phaser.Scene {
   
   constructor() {
     super({ key: 'Game' });
+    
+    // Map rotation state (2D only, in degrees)
+    this.rotation = 0; // 0, 90, 180, or 270
   }
   
   /**
@@ -33,11 +37,14 @@ export class Game extends Phaser.Scene {
     // Create graphics object for rendering
     this.graphics = this.add.graphics();
     
-    // Create player at grid position (20, 20) - centered to avoid debug panel
+    // Get grid and tokens array references
     const grid = this.canvas.layers.grid;
+    const tokens = this.canvas.layers.tokens;
+    const tileSize = grid.size;
+    
+    // Create player at grid position (20, 20) - centered to avoid debug panel
     const playerCol = 20;
     const playerRow = 20;
-    const tileSize = grid.size;
     
     this.player = new Player(
       playerCol * tileSize,  // x
@@ -46,13 +53,18 @@ export class Game extends Phaser.Scene {
       tileSize,              // height
       {
         grid: grid,
+        tokens: tokens,  // Pass tokens array for collision detection
         col: playerCol,
         row: playerRow
       }
     );
     
     // Add player to tokens layer
-    this.canvas.layers.tokens.push(this.player);
+    tokens.push(this.player);
+    
+    // Spawn 2 enemies at random positions
+    this.spawnEnemy(grid, tokens, tileSize, 'Goblin');
+    this.spawnEnemy(grid, tokens, tileSize, 'Orc');
     
     // Create camera controller
     this.cameraController = new Camera(this.cameras.main, {
@@ -64,8 +76,11 @@ export class Game extends Phaser.Scene {
     // Make camera follow player
     this.cameraController.follow(this.player);
     
-    // Set initial player screen position for current view mode
-    this.player.updateScreenPosition(this.cameraController.getViewMode());
+    // Set initial screen positions for all tokens
+    const viewMode = this.cameraController.getViewMode();
+    for (const token of tokens) {
+      token.updateScreenPosition(viewMode);
+    }
     
     // Setup keyboard input
     this.setupInput();
@@ -88,6 +103,58 @@ export class Game extends Phaser.Scene {
     this.render();
     
     logger.debug('Initial render complete');
+  }
+  
+  /**
+   * Spawn an enemy at a random unoccupied position
+   * @param {Grid} grid - Grid instance
+   * @param {Array} tokens - Array of all tokens
+   * @param {number} tileSize - Size of each tile
+   * @param {string} name - Enemy name
+   */
+  spawnEnemy(grid, tokens, tileSize, name) {
+    let col, row;
+    let attempts = 0;
+    const maxAttempts = 100;
+    
+    // Find random unoccupied position
+    do {
+      col = Math.floor(Math.random() * grid.columns);
+      row = Math.floor(Math.random() * grid.rows);
+      attempts++;
+      
+      // Check if position is occupied
+      const occupied = tokens.some(token => token.col === col && token.row === row);
+      
+      if (!occupied) {
+        break;
+      }
+      
+      if (attempts >= maxAttempts) {
+        logger.error(`Failed to spawn ${name} after ${maxAttempts} attempts`);
+        return;
+      }
+    } while (true);
+    
+    // Create enemy at random position
+    const enemy = new Enemy(
+      col * tileSize,
+      row * tileSize,
+      tileSize,
+      tileSize,
+      {
+        grid: grid,
+        tokens: tokens,  // Pass tokens array for collision detection
+        col: col,
+        row: row,
+        name: name
+      }
+    );
+    
+    // Add enemy to tokens layer
+    tokens.push(enemy);
+    
+    logger.info(`Spawned ${name} at (${col}, ${row})`);
   }
   
   /**
@@ -222,6 +289,27 @@ export class Game extends Phaser.Scene {
       }
       
       this.render();
+      return;
+    }
+    
+    // Check for map rotation (2D only)
+    if (key.toLowerCase() === DATA.VIEW.ROTATION_KEY) {
+      const viewMode = this.cameraController.getViewMode();
+      
+      if (viewMode === '2D') {
+        // Rotate map 90 degrees clockwise
+        this.rotation += DATA.VIEW.ROTATION_INCREMENT;
+        
+        // Keep rotation between 0-359 degrees
+        this.rotation = this.rotation % 360;
+        
+        logger.info(`Map rotated to ${this.rotation}°`);
+        
+        this.render();
+      } else {
+        logger.debug('Map rotation only works in 2D mode');
+      }
+      
       return;
     }
     
@@ -371,7 +459,7 @@ export class Game extends Phaser.Scene {
     });
     
     // Canvas handles rendering of background, grid, and all layers
-    this.canvas.render(this.graphics, viewMode, highlights);
+    this.canvas.render(this.graphics, viewMode, highlights, this.rotation);
   }
   
   /**

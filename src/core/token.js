@@ -11,6 +11,8 @@
 import { Entity } from './entity.js';
 import { logger } from '../utils/logger.js';
 import { cartesianToIso } from '../utils/projection.js';
+import { rotatePixelPosition } from '../utils/rotation.js';
+import { DATA } from '../data/constants.js';
 
 export class Token extends Entity {
   /**
@@ -21,6 +23,7 @@ export class Token extends Entity {
    * @param {number} height - Height in pixels
    * @param {Object} options - Token configuration
    * @param {Grid} options.grid - Grid instance (required)
+   * @param {Array} [options.tokens] - Reference to tokens array for collision detection
    * @param {number} [options.col] - Grid column position
    * @param {number} [options.row] - Grid row position
    * @param {string} [options.name] - Token name
@@ -44,6 +47,12 @@ export class Token extends Entity {
     this.name = options.name || 'Token';
     this.color = options.color || '#FFFFFF';
     this.img = options.img || null;
+    
+    // Reference to all tokens for collision detection
+    this.tokens = options.tokens || null;
+    
+    // Movement tracking for turns (used by both Player and Enemy)
+    this.movementRemaining = this.movement;
     
     // Calculate stats after initialization (only calculates non-overridden stats)
     this.calculateStats();
@@ -98,11 +107,26 @@ export class Token extends Entity {
   }
   
   /**
+   * Start a new turn - reset movement
+   */
+  startTurn() {
+    this.movementRemaining = this.movement;
+    logger.debug(`${this.name} turn started. Movement: ${this.movementRemaining}`);
+  }
+  
+  /**
    * Attempt to move in a direction with collision detection
+   * Consumes movement points when successful
    * @param {string} direction - Direction to move ('up', 'down', 'left', 'right')
    * @returns {boolean} True if movement succeeded, false if blocked
    */
   move(direction) {
+    // Check if token has movement remaining
+    if (this.movementRemaining < 1) {
+      logger.debug(`${this.name}: No movement remaining this turn`);
+      return false;
+    }
+    
     // Calculate target position based on direction
     let targetCol = this.col;
     let targetRow = this.row;
@@ -142,13 +166,36 @@ export class Token extends Entity {
     // - Check if any tile is at (targetCol, targetRow)
     // - If tile.passable === false, return false
     
-    // TODO: Check collision with other tokens
-    // - Loop through canvas.layers.tokens
-    // - Check if any token (except this) is at (targetCol, targetRow)
-    // - If token.passable === false, return false
+    // Check collision with other tokens
+    if (this.tokens) {
+      for (const token of this.tokens) {
+        // Skip self
+        if (token === this) continue;
+        
+        // Check if another token is at target position
+        if (token.col === targetCol && token.row === targetRow) {
+          logger.debug(`Movement blocked: token collision at (${targetCol}, ${targetRow})`);
+          return false;
+        }
+      }
+    }
     
     // No collision detected - perform movement
     this.moveTo(targetCol, targetRow);
+    
+    // Consume movement
+    this.movementRemaining -= 1;
+    logger.debug(`${this.name} moved to (${targetCol}, ${targetRow}). Remaining: ${this.movementRemaining}`);
+    
+    // Auto-reset movement in DEBUG mode (only for Player class)
+    if (DATA.DEBUG && this.movementRemaining === 0 && this.constructor.name === 'Player') {
+      logger.debug('DEBUG: Player movement will reset in 1 second');
+      setTimeout(() => {
+        this.startTurn();
+        logger.debug('DEBUG: Player movement auto-reset');
+      }, 1000);
+    }
+    
     return true;
   }
   
@@ -156,16 +203,41 @@ export class Token extends Entity {
    * Render token to Phaser graphics
    * @param {Phaser.GameObjects.Graphics} graphics - Phaser graphics object
    * @param {string} viewMode - Current view mode ('2D' or 'ISOMETRIC')
+   * @param {number} rotation - Map rotation in degrees (2D only, 0/90/180/270)
+   * @param {Grid} grid - Grid instance for rotation calculations
    */
-  render(graphics, viewMode = '2D') {
+  render(graphics, viewMode = '2D', rotation = 0, grid = null) {
     // No debug outline for tokens (not needed)
     
     // Convert hex color to Phaser number format
     const colorNumber = parseInt(this.color.replace('#', '0x'));
     
-    // Use x,y position (already updated by updateScreenPosition for isometric)
-    const centerX = this.x + this.width / 2;
-    const centerY = this.y + this.height / 2;
+    // Calculate center position based on view mode and rotation
+    let centerX, centerY;
+    
+    if (viewMode === 'ISOMETRIC') {
+      // Isometric mode - use x,y position (already calculated)
+      centerX = this.x + this.width / 2;
+      centerY = this.y + this.height / 2;
+    } else {
+      // 2D mode - apply rotation to position
+      if (rotation !== 0 && grid) {
+        // Apply rotation transformation
+        const rotated = rotatePixelPosition(
+          this.col * grid.size,
+          this.row * grid.size,
+          rotation,
+          grid.width,
+          grid.height
+        );
+        centerX = rotated.x + this.width / 2;
+        centerY = rotated.y + this.height / 2;
+      } else {
+        // No rotation - use standard position
+        centerX = this.x + this.width / 2;
+        centerY = this.y + this.height / 2;
+      }
+    }
     
     // Draw token as filled circle
     const radius = this.width * 0.4; // 40% of tile size

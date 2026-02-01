@@ -23,9 +23,11 @@ const DEBUG = true;
  * View mode settings
  */
 const VIEW = {
-  MODE: '2D',           // Default view mode ('2D' or 'ISOMETRIC')
-  TOGGLE_KEY: 'x',      // Key to toggle view mode (lowercase for comparison)
-  ISO_ROTATION: 45      // Rotation angle for isometric view (degrees)
+  MODE: '2D',              // Default view mode ('2D' or 'ISOMETRIC')
+  TOGGLE_KEY: 'x',         // Key to toggle view mode (lowercase for comparison)
+  ISO_ROTATION: 45,        // Rotation angle for isometric view (degrees)
+  ROTATION_KEY: 'e',       // Key to rotate 2D map (lowercase for comparison)
+  ROTATION_INCREMENT: 90   // Degrees to rotate per key press (90 = quarter turn)
 };
 
 // ====================
@@ -78,8 +80,34 @@ const MOVEMENT = {
  * Mouse interaction settings
  */
 const MOUSE = {
-  HOVER_COLOR: 0xFFFFFF,    // White color for hovered tile
-  HOVER_OPACITY: 0.4        // Opacity for hovered tile (0-1)
+  HOVER_COLOR: 0xFFFFFF,   // White color for hovered tile
+  HOVER_OPACITY: 0.4       // Opacity for hovered tile (0-1)
+};
+
+/**
+ * Player defaults
+ */
+const PLAYER = {
+  NAME: 'Player',
+  COLOR: '#0000FF',  // Blue
+  BASE_STATS: {
+    strength: 0,
+    dexterity: 0,
+    intelligence: 0
+  }
+};
+
+/**
+ * Enemy defaults
+ */
+const ENEMY = {
+  NAME: 'Enemy',
+  COLOR: '#FF0000',  // Red
+  BASE_STATS: {
+    strength: 0,
+    dexterity: 0,
+    intelligence: 0
+  }
 };
 
 // ====================
@@ -124,5 +152,7 @@ export const DATA = {
   CAMERA,
   MOVEMENT,
   MOUSE,
+  PLAYER,
+  ENEMY,
   STATS
 };
