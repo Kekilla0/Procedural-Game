@@ -44,5 +44,48 @@ export class Player extends Token {
         MOV: this.movement
       }
     });
+    
+    // Initial stats panel update
+    this.updateStatsPanel();
+  }
+  
+  /**
+   * Calculate all sub-stats from base stats
+   * Overrides parent to also update stats panel
+   */
+  calculateStats() {
+    // Call parent calculation
+    super.calculateStats();
+    
+    // Update stats panel if it exists
+    this.updateStatsPanel();
+  }
+  
+  /**
+   * Update the stats panel in the UI with current player stats
+   */
+  updateStatsPanel() {
+    // Check if stats panel exists in DOM
+    if (!document.getElementById('stat-strength')) {
+      logger.debug('Stats panel not found in DOM');
+      return;
+    }
+    
+    // Base stats
+    document.getElementById('stat-strength').textContent = this.strength;
+    document.getElementById('stat-dexterity').textContent = this.dexterity;
+    document.getElementById('stat-intelligence').textContent = this.intelligence;
+    
+    // Combat stats
+    document.getElementById('stat-health').textContent = this.health;
+    document.getElementById('stat-defense').textContent = this.defense;
+    document.getElementById('stat-initiative').textContent = this.initiative;
+    
+    // Other stats
+    document.getElementById('stat-capacity').textContent = this.capacity;
+    document.getElementById('stat-movement').textContent = this.movement;
+    document.getElementById('stat-skill').textContent = this.skill;
+    
+    logger.debug('Stats panel updated');
   }
 }

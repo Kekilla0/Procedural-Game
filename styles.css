@@ -23,6 +23,25 @@ body {
 }
 
 /* ===========================
+   MAIN LAYOUT
+   =========================== */
+
+#main-layout {
+  display: flex;
+  gap: 20px;
+  padding: 20px;
+  max-width: 1400px;
+  margin: 0 auto;
+}
+
+#left-panel {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+/* ===========================
    CONTAINER
    =========================== */
 
@@ -32,7 +51,6 @@ body {
   flex-direction: column;
   align-items: center;
   gap: 20px;
-  padding: 20px;
 }
 
 /* ===========================
@@ -80,4 +98,110 @@ body {
 #debug-content span {
   color: #ffffff;
   font-weight: bold;
+}
+
+/* ===========================
+   CONTROLS BOX
+   =========================== */
+
+#controls-box {
+  background-color: rgba(0, 0, 0, 0.8);
+  border: 2px solid #00ff00;
+  padding: 20px;
+  font-family: 'Courier New', monospace;
+  color: #00ff00;
+  box-shadow: 0 0 10px rgba(0, 255, 0, 0.3);
+}
+
+#controls-box h3 {
+  margin: 0 0 15px 0;
+  font-size: 18px;
+  border-bottom: 1px solid #00ff00;
+  padding-bottom: 5px;
+  color: #00ff00;
+}
+
+#controls-box ul {
+  list-style: none;
+  padding: 0;
+  margin: 0 0 15px 0;
+}
+
+#controls-box ul li {
+  margin: 8px 0;
+  font-size: 14px;
+  color: #cccccc;
+}
+
+#controls-box ul li strong {
+  color: #00ff00;
+  font-weight: bold;
+}
+
+#controls-box a {
+  color: #00ff00;
+  text-decoration: none;
+  border: 1px solid #00ff00;
+  padding: 5px 10px;
+  display: inline-block;
+  transition: all 0.3s;
+}
+
+#controls-box a:hover {
+  background-color: #00ff00;
+  color: #000000;
+}
+
+/* ===========================
+   STATS PANEL
+   =========================== */
+
+#stats-panel {
+  width: 300px;
+  background-color: rgba(0, 0, 0, 0.8);
+  border: 2px solid #00ff00;
+  padding: 20px;
+  font-family: 'Courier New', monospace;
+  color: #00ff00;
+  box-shadow: 0 0 10px rgba(0, 255, 0, 0.3);
+  height: fit-content;
+}
+
+#stats-panel h3 {
+  margin: 0 0 20px 0;
+  font-size: 18px;
+  border-bottom: 2px solid #00ff00;
+  padding-bottom: 10px;
+  color: #00ff00;
+  text-align: center;
+}
+
+.stat-group {
+  margin-bottom: 20px;
+}
+
+.stat-group h4 {
+  margin: 0 0 10px 0;
+  font-size: 14px;
+  color: #00ff00;
+  border-bottom: 1px solid rgba(0, 255, 0, 0.3);
+  padding-bottom: 5px;
+}
+
+.stat-row {
+  display: flex;
+  justify-content: space-between;
+  padding: 5px 0;
+  font-size: 13px;
+}
+
+.stat-row label {
+  color: #cccccc;
+}
+
+.stat-row span {
+  color: #ffffff;
+  font-weight: bold;
+  min-width: 40px;
+  text-align: right;
 }

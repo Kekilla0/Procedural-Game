@@ -24,9 +24,8 @@ const DEBUG = true;
  */
 const VIEW = {
   MODE: '2D',           // Default view mode ('2D' or 'ISOMETRIC')
-  TOGGLE_KEY: 'x',    // Key to toggle view mode
-  ISO_TILE_WIDTH: 50,   // Isometric tile width in pixels
-  ISO_TILE_HEIGHT: 25   // Isometric tile height in pixels (2:1 ratio)
+  TOGGLE_KEY: 'x',      // Key to toggle view mode (lowercase for comparison)
+  ISO_ROTATION: 45      // Rotation angle for isometric view (degrees)
 };
 
 // ====================

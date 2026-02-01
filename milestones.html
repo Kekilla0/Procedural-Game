@@ -1,0 +1,931 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Project Milestones Tracker</title>
+    <link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=Outfit:wght@300;400;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg-primary: #0a0e17;
+            --bg-secondary: #151a27;
+            --bg-tertiary: #1e2535;
+            --accent-primary: #00d9ff;
+            --accent-secondary: #7c3aed;
+            --accent-success: #10b981;
+            --text-primary: #e2e8f0;
+            --text-secondary: #94a3b8;
+            --text-muted: #64748b;
+            --border-color: #2d3748;
+            --shadow: rgba(0, 0, 0, 0.3);
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Outfit', sans-serif;
+            background: linear-gradient(135deg, var(--bg-primary) 0%, #0f1419 100%);
+            color: var(--text-primary);
+            min-height: 100vh;
+            padding: 1.5rem;
+            line-height: 1.5;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        header {
+            text-align: center;
+            margin-bottom: 2rem;
+            position: relative;
+        }
+
+        h1 {
+            font-size: 2.5rem;
+            font-weight: 700;
+            background: linear-gradient(135deg, var(--accent-primary), var(--accent-secondary));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            margin-bottom: 0.5rem;
+            letter-spacing: -0.02em;
+        }
+
+        .save-load-controls {
+            display: flex;
+            gap: 0.5rem;
+            justify-content: center;
+            margin-top: 1rem;
+        }
+
+        .btn {
+            background: var(--bg-secondary);
+            border: 1px solid var(--border-color);
+            color: var(--text-secondary);
+            padding: 0.5rem 1rem;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 0.875rem;
+            font-family: 'Space Mono', monospace;
+            transition: all 0.2s;
+        }
+
+        .btn:hover {
+            background: var(--bg-primary);
+            color: var(--accent-primary);
+            border-color: var(--accent-primary);
+        }
+
+        .status-bar {
+            background: var(--bg-secondary);
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            padding: 1rem;
+            margin-bottom: 1.5rem;
+            box-shadow: 0 4px 6px var(--shadow);
+        }
+
+        .status-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+            gap: 1rem;
+        }
+
+        .status-item {
+            text-align: center;
+        }
+
+        .status-label {
+            font-size: 0.7rem;
+            text-transform: uppercase;
+            letter-spacing: 0.1em;
+            color: var(--text-muted);
+            font-weight: 600;
+            font-family: 'Space Mono', monospace;
+        }
+
+        .status-value {
+            font-size: 1.75rem;
+            font-weight: 700;
+            color: var(--accent-primary);
+            margin-top: 0.25rem;
+        }
+
+        .progress-bar {
+            width: 100%;
+            height: 6px;
+            background: var(--bg-tertiary);
+            border-radius: 3px;
+            overflow: hidden;
+            margin-top: 0.75rem;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, var(--accent-secondary), var(--accent-primary));
+            transition: width 0.5s ease;
+            border-radius: 3px;
+        }
+
+        .phase {
+            background: var(--bg-secondary);
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            padding: 1rem;
+            margin-bottom: 1rem;
+            box-shadow: 0 4px 6px var(--shadow);
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+
+        .phase:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 6px 10px var(--shadow);
+        }
+
+        .phase-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding-bottom: 0.75rem;
+            border-bottom: 1px solid var(--border-color);
+            cursor: pointer;
+        }
+
+        .phase.collapsed .phase-header {
+            border-bottom: none;
+            padding-bottom: 0;
+        }
+
+        .phase-title {
+            font-size: 1.25rem;
+            font-weight: 700;
+            color: var(--text-primary);
+        }
+
+        .phase-status {
+            display: inline-block;
+            padding: 0.2rem 0.6rem;
+            border-radius: 4px;
+            font-size: 0.7rem;
+            font-weight: 600;
+            font-family: 'Space Mono', monospace;
+            text-transform: uppercase;
+        }
+
+        .status-done {
+            background: rgba(16, 185, 129, 0.2);
+            color: var(--accent-success);
+            border: 1px solid var(--accent-success);
+        }
+
+        .status-working {
+            background: rgba(0, 217, 255, 0.2);
+            color: var(--accent-primary);
+            border: 1px solid var(--accent-primary);
+        }
+
+        .status-not-started {
+            background: rgba(100, 116, 139, 0.2);
+            color: var(--text-muted);
+            border: 1px solid var(--text-muted);
+        }
+
+        .phase-goal {
+            font-style: italic;
+            color: var(--text-secondary);
+            margin-top: 0.75rem;
+            font-size: 0.9rem;
+        }
+
+        .phase-content {
+            transition: all 0.3s ease;
+        }
+
+        .phase.collapsed .phase-content {
+            display: none;
+        }
+
+        .task {
+            display: flex;
+            align-items: flex-start;
+            padding: 0.5rem;
+            margin: 0.35rem 0;
+            border-radius: 6px;
+            background: var(--bg-tertiary);
+            transition: background 0.2s;
+            cursor: move;
+        }
+
+        .task:hover {
+            background: rgba(255, 255, 255, 0.05);
+        }
+
+        .task.dragging {
+            opacity: 0.5;
+        }
+
+        .task.drag-over {
+            border: 2px dashed var(--accent-primary);
+        }
+
+        .task.level-0 {
+            margin-left: 0;
+        }
+
+        .task.level-1 {
+            margin-left: 1.5rem;
+        }
+
+        .task.level-2 {
+            margin-left: 3rem;
+        }
+
+        .task-checkbox {
+            width: 18px;
+            height: 18px;
+            margin-right: 0.75rem;
+            cursor: pointer;
+            flex-shrink: 0;
+            accent-color: var(--accent-primary);
+        }
+
+        .task-content {
+            flex: 1;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .task-text {
+            flex: 1;
+            color: var(--text-primary);
+            font-size: 0.9rem;
+        }
+
+        .task.completed .task-text {
+            text-decoration: line-through;
+            color: var(--text-muted);
+        }
+
+        .task-controls {
+            display: flex;
+            gap: 0.35rem;
+            opacity: 0;
+            transition: opacity 0.2s;
+        }
+
+        .task:hover .task-controls {
+            opacity: 1;
+        }
+
+        .btn-small {
+            background: none;
+            border: 1px solid var(--border-color);
+            color: var(--text-secondary);
+            padding: 0.2rem 0.4rem;
+            border-radius: 3px;
+            cursor: pointer;
+            font-size: 0.7rem;
+            font-family: 'Space Mono', monospace;
+            transition: all 0.2s;
+        }
+
+        .btn-small:hover {
+            background: var(--bg-primary);
+            color: var(--accent-primary);
+            border-color: var(--accent-primary);
+        }
+
+        .add-task-btn {
+            margin-top: 0.75rem;
+            background: var(--bg-tertiary);
+            border: 1px dashed var(--border-color);
+            color: var(--text-secondary);
+            padding: 0.5rem;
+            border-radius: 6px;
+            cursor: pointer;
+            width: 100%;
+            font-size: 0.8rem;
+            font-family: 'Outfit', sans-serif;
+            transition: all 0.2s;
+        }
+
+        .add-task-btn:hover {
+            background: var(--bg-primary);
+            color: var(--accent-primary);
+            border-color: var(--accent-primary);
+        }
+
+        .notes-section {
+            background: var(--bg-secondary);
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            padding: 1rem;
+            margin-top: 1.5rem;
+            box-shadow: 0 4px 6px var(--shadow);
+        }
+
+        .notes-title {
+            font-size: 1.25rem;
+            font-weight: 700;
+            margin-bottom: 0.75rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .notes-textarea {
+            width: 100%;
+            min-height: 150px;
+            background: var(--bg-tertiary);
+            border: 1px solid var(--border-color);
+            border-radius: 6px;
+            color: var(--text-primary);
+            padding: 0.75rem;
+            font-family: 'Outfit', sans-serif;
+            font-size: 0.9rem;
+            resize: vertical;
+            transition: border-color 0.2s;
+        }
+
+        .notes-textarea:focus {
+            outline: none;
+            border-color: var(--accent-primary);
+        }
+
+        .add-phase-btn {
+            background: linear-gradient(135deg, var(--accent-secondary), var(--accent-primary));
+            border: none;
+            color: white;
+            padding: 0.75rem 1.5rem;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 0.95rem;
+            font-weight: 600;
+            font-family: 'Outfit', sans-serif;
+            margin-top: 0.75rem;
+            transition: transform 0.2s, box-shadow 0.2s;
+            width: 100%;
+        }
+
+        .add-phase-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 16px rgba(0, 217, 255, 0.3);
+        }
+
+        .phase-controls {
+            display: flex;
+            gap: 0.35rem;
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(10px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .phase, .task {
+            animation: fadeIn 0.3s ease-out;
+        }
+
+        .completion-badge {
+            font-size: 0.8rem;
+            color: var(--text-secondary);
+            font-family: 'Space Mono', monospace;
+        }
+
+        .collapse-indicator {
+            color: var(--text-muted);
+            font-size: 0.9rem;
+            transition: transform 0.3s;
+        }
+
+        .phase.collapsed .collapse-indicator {
+            transform: rotate(-90deg);
+        }
+
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.8);
+            z-index: 1000;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .modal.active {
+            display: flex;
+        }
+
+        .modal-content {
+            background: var(--bg-secondary);
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            padding: 1.5rem;
+            max-width: 600px;
+            width: 90%;
+            max-height: 80vh;
+            overflow: auto;
+        }
+
+        .modal-content h3 {
+            margin-bottom: 1rem;
+            color: var(--accent-primary);
+        }
+
+        .modal-content textarea {
+            width: 100%;
+            min-height: 300px;
+            background: var(--bg-tertiary);
+            border: 1px solid var(--border-color);
+            border-radius: 6px;
+            color: var(--text-primary);
+            padding: 0.75rem;
+            font-family: 'Space Mono', monospace;
+            font-size: 0.85rem;
+        }
+
+        .modal-buttons {
+            display: flex;
+            gap: 0.5rem;
+            margin-top: 1rem;
+            justify-content: flex-end;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>Project Milestones</h1>
+            <div class="save-load-controls">
+                <button class="btn" onclick="exportJSON()">💾 Export JSON</button>
+                <button class="btn" onclick="importJSON()">📂 Import JSON</button>
+            </div>
+        </header>
+
+        <div class="status-bar">
+            <div class="status-grid">
+                <div class="status-item">
+                    <div class="status-label">Overall Progress</div>
+                    <div class="status-value" id="overall-progress">0%</div>
+                    <div class="progress-bar">
+                        <div class="progress-fill" id="overall-progress-bar" style="width: 0%"></div>
+                    </div>
+                </div>
+                <div class="status-item">
+                    <div class="status-label">Current Phase</div>
+                    <div class="status-value" id="current-phase">—</div>
+                </div>
+                <div class="status-item">
+                    <div class="status-label">Completed Phases</div>
+                    <div class="status-value" id="completed-phases">0</div>
+                </div>
+            </div>
+        </div>
+
+        <div id="phases-container"></div>
+
+        <button class="add-phase-btn" onclick="addPhase()">+ Add New Phase</button>
+
+        <div class="notes-section">
+            <h2 class="notes-title">💡 Notes</h2>
+            <textarea class="notes-textarea" id="notes" placeholder="Type your ideas here..."></textarea>
+        </div>
+    </div>
+
+    <!-- JSON Modal -->
+    <div id="jsonModal" class="modal">
+        <div class="modal-content">
+            <h3 id="modalTitle">JSON Data</h3>
+            <textarea id="jsonTextarea"></textarea>
+            <div class="modal-buttons">
+                <button class="btn" onclick="closeModal()">Cancel</button>
+                <button class="btn" id="modalActionBtn" onclick="performModalAction()">Import</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Data structure
+        let projectData = {
+            phases: [],
+            notes: ''
+        };
+
+        let draggedTask = null;
+        let draggedPhaseId = null;
+
+        // Load data from localStorage
+        function loadData() {
+            const saved = localStorage.getItem('projectMilestones');
+            if (saved) {
+                try {
+                    projectData = JSON.parse(saved);
+                } catch (e) {
+                    console.error('Error loading saved data:', e);
+                }
+            }
+        }
+
+        // Save data to localStorage
+        function saveData() {
+            localStorage.setItem('projectMilestones', JSON.stringify(projectData));
+        }
+
+        // Export JSON
+        function exportJSON() {
+            const modal = document.getElementById('jsonModal');
+            const textarea = document.getElementById('jsonTextarea');
+            const title = document.getElementById('modalTitle');
+            const actionBtn = document.getElementById('modalActionBtn');
+            
+            title.textContent = 'Export JSON';
+            textarea.value = JSON.stringify(projectData, null, 2);
+            actionBtn.textContent = 'Copy to Clipboard';
+            actionBtn.onclick = () => {
+                navigator.clipboard.writeText(textarea.value);
+                alert('JSON copied to clipboard!');
+                closeModal();
+            };
+            modal.classList.add('active');
+        }
+
+        // Import JSON
+        function importJSON() {
+            const modal = document.getElementById('jsonModal');
+            const textarea = document.getElementById('jsonTextarea');
+            const title = document.getElementById('modalTitle');
+            const actionBtn = document.getElementById('modalActionBtn');
+            
+            title.textContent = 'Import JSON';
+            textarea.value = '';
+            actionBtn.textContent = 'Import';
+            actionBtn.onclick = () => {
+                try {
+                    const imported = JSON.parse(textarea.value);
+                    projectData = imported;
+                    saveData();
+                    document.getElementById('notes').value = projectData.notes;
+                    renderPhases();
+                    alert('Data imported successfully!');
+                    closeModal();
+                } catch (e) {
+                    alert('Invalid JSON format!');
+                }
+            };
+            modal.classList.add('active');
+        }
+
+        function closeModal() {
+            document.getElementById('jsonModal').classList.remove('active');
+        }
+
+        // Calculate overall progress
+        function calculateProgress() {
+            let totalTasks = 0;
+            let completedTasks = 0;
+            let completedPhases = 0;
+            let currentPhase = "—";
+
+            projectData.phases.forEach(phase => {
+                totalTasks += phase.tasks.length;
+                const phaseTasks = phase.tasks.filter(t => t.completed).length;
+                completedTasks += phaseTasks;
+
+                if (phase.status === "Done") {
+                    completedPhases++;
+                } else if (phase.status === "Working" && currentPhase === "—") {
+                    currentPhase = phase.title.split(':')[0];
+                }
+            });
+
+            const percentage = totalTasks > 0 ? Math.round((completedTasks / totalTasks) * 100) : 0;
+
+            document.getElementById('overall-progress').textContent = percentage + '%';
+            document.getElementById('overall-progress-bar').style.width = percentage + '%';
+            document.getElementById('current-phase').textContent = currentPhase;
+            document.getElementById('completed-phases').textContent = completedPhases;
+        }
+
+        // Render all phases
+        function renderPhases() {
+            const container = document.getElementById('phases-container');
+            container.innerHTML = '';
+
+            projectData.phases.forEach(phase => {
+                const phaseEl = createPhaseElement(phase);
+                container.appendChild(phaseEl);
+            });
+
+            calculateProgress();
+        }
+
+        // Create phase element
+        function createPhaseElement(phase) {
+            const phaseDiv = document.createElement('div');
+            phaseDiv.className = 'phase';
+            if (phase.status === 'Done' && phase.collapsed !== false) {
+                phaseDiv.classList.add('collapsed');
+            }
+            
+            const completedTasks = phase.tasks.filter(t => t.completed).length;
+            const totalTasks = phase.tasks.length;
+
+            let statusClass = 'status-not-started';
+            if (phase.status === 'Done') statusClass = 'status-done';
+            else if (phase.status === 'Working') statusClass = 'status-working';
+
+            phaseDiv.innerHTML = `
+                <div class="phase-header" onclick="togglePhaseCollapse(${phase.id})">
+                    <div>
+                        <span class="collapse-indicator">▼</span>
+                        <span class="phase-title" style="margin-left: 0.5rem;">${phase.title}</span>
+                        <div class="phase-goal">${phase.goal}</div>
+                    </div>
+                    <div style="text-align: right;">
+                        <span class="phase-status ${statusClass}">${phase.status}</span>
+                        <div class="completion-badge">${completedTasks}/${totalTasks} tasks</div>
+                        <div class="phase-controls" style="margin-top: 0.5rem;" onclick="event.stopPropagation()">
+                            <button class="btn-small" onclick="changePhaseStatus(${phase.id})">Status</button>
+                            <button class="btn-small" onclick="deletePhase(${phase.id})">Delete</button>
+                        </div>
+                    </div>
+                </div>
+                <div class="phase-content">
+                    <div class="tasks-container" id="tasks-${phase.id}"></div>
+                    <button class="add-task-btn" onclick="addTask(${phase.id})">+ Add Task</button>
+                </div>
+            `;
+
+            const tasksContainer = phaseDiv.querySelector(`#tasks-${phase.id}`);
+            phase.tasks.forEach(task => {
+                const taskEl = createTaskElement(phase.id, task);
+                tasksContainer.appendChild(taskEl);
+            });
+
+            return phaseDiv;
+        }
+
+        // Toggle phase collapse
+        function togglePhaseCollapse(phaseId) {
+            const phase = projectData.phases.find(p => p.id === phaseId);
+            if (phase.status === 'Done') {
+                phase.collapsed = !phase.collapsed;
+                saveData();
+                renderPhases();
+            }
+        }
+
+        // Create task element with drag and drop
+        function createTaskElement(phaseId, task) {
+            const taskDiv = document.createElement('div');
+            taskDiv.className = `task level-${task.level} ${task.completed ? 'completed' : ''}`;
+            taskDiv.draggable = true;
+            
+            taskDiv.innerHTML = `
+                <input type="checkbox" class="task-checkbox" ${task.completed ? 'checked' : ''} 
+                    onchange="toggleTask(${phaseId}, ${task.id})">
+                <div class="task-content">
+                    <span class="task-text">${task.text}</span>
+                    <div class="task-controls">
+                        ${task.level > 0 ? `<button class="btn-small" onclick="changeTaskLevel(${phaseId}, ${task.id}, -1)">◄</button>` : ''}
+                        ${task.level < 2 ? `<button class="btn-small" onclick="changeTaskLevel(${phaseId}, ${task.id}, 1)">►</button>` : ''}
+                        <button class="btn-small" onclick="editTask(${phaseId}, ${task.id})">Edit</button>
+                        <button class="btn-small" onclick="deleteTask(${phaseId}, ${task.id})">×</button>
+                    </div>
+                </div>
+            `;
+
+            // Drag and drop event listeners
+            taskDiv.addEventListener('dragstart', (e) => {
+                draggedTask = task;
+                draggedPhaseId = phaseId;
+                taskDiv.classList.add('dragging');
+            });
+
+            taskDiv.addEventListener('dragend', (e) => {
+                taskDiv.classList.remove('dragging');
+                document.querySelectorAll('.task').forEach(t => t.classList.remove('drag-over'));
+            });
+
+            taskDiv.addEventListener('dragover', (e) => {
+                e.preventDefault();
+                const afterElement = getDragAfterElement(taskDiv.parentElement, e.clientY);
+                taskDiv.classList.add('drag-over');
+            });
+
+            taskDiv.addEventListener('dragleave', (e) => {
+                taskDiv.classList.remove('drag-over');
+            });
+
+            taskDiv.addEventListener('drop', (e) => {
+                e.preventDefault();
+                taskDiv.classList.remove('drag-over');
+                
+                if (draggedTask && draggedPhaseId !== null) {
+                    // Find target phase
+                    const targetPhaseId = phaseId;
+                    const sourcePhase = projectData.phases.find(p => p.id === draggedPhaseId);
+                    const targetPhase = projectData.phases.find(p => p.id === targetPhaseId);
+                    
+                    // Remove from source
+                    const taskIndex = sourcePhase.tasks.findIndex(t => t.id === draggedTask.id);
+                    sourcePhase.tasks.splice(taskIndex, 1);
+                    
+                    // Add to target at correct position
+                    const targetIndex = targetPhase.tasks.findIndex(t => t.id === task.id);
+                    targetPhase.tasks.splice(targetIndex, 0, draggedTask);
+                    
+                    saveData();
+                    renderPhases();
+                }
+            });
+
+            // Also allow dropping on the container
+            const container = document.getElementById(`tasks-${phaseId}`);
+            if (container && !container.dataset.dropListenerAdded) {
+                container.dataset.dropListenerAdded = 'true';
+                container.addEventListener('dragover', (e) => {
+                    e.preventDefault();
+                });
+                container.addEventListener('drop', (e) => {
+                    e.preventDefault();
+                    if (draggedTask && draggedPhaseId !== null) {
+                        const sourcePhase = projectData.phases.find(p => p.id === draggedPhaseId);
+                        const targetPhase = projectData.phases.find(p => p.id === phaseId);
+                        
+                        const taskIndex = sourcePhase.tasks.findIndex(t => t.id === draggedTask.id);
+                        sourcePhase.tasks.splice(taskIndex, 1);
+                        targetPhase.tasks.push(draggedTask);
+                        
+                        saveData();
+                        renderPhases();
+                    }
+                });
+            }
+
+            return taskDiv;
+        }
+
+        function getDragAfterElement(container, y) {
+            const draggableElements = [...container.querySelectorAll('.task:not(.dragging)')];
+            
+            return draggableElements.reduce((closest, child) => {
+                const box = child.getBoundingClientRect();
+                const offset = y - box.top - box.height / 2;
+                
+                if (offset < 0 && offset > closest.offset) {
+                    return { offset: offset, element: child };
+                } else {
+                    return closest;
+                }
+            }, { offset: Number.NEGATIVE_INFINITY }).element;
+        }
+
+        // Toggle task completion
+        function toggleTask(phaseId, taskId) {
+            const phase = projectData.phases.find(p => p.id === phaseId);
+            const task = phase.tasks.find(t => t.id === taskId);
+            task.completed = !task.completed;
+            
+            // Auto-update phase status
+            const allCompleted = phase.tasks.every(t => t.completed);
+            const someCompleted = phase.tasks.some(t => t.completed);
+            
+            if (allCompleted && phase.tasks.length > 0) {
+                phase.status = "Done";
+            } else if (someCompleted) {
+                phase.status = "Working";
+            } else {
+                phase.status = "Not Started";
+            }
+            
+            saveData();
+            renderPhases();
+        }
+
+        // Change task level (indent)
+        function changeTaskLevel(phaseId, taskId, delta) {
+            const phase = projectData.phases.find(p => p.id === phaseId);
+            const task = phase.tasks.find(t => t.id === taskId);
+            task.level = Math.max(0, Math.min(2, task.level + delta));
+            saveData();
+            renderPhases();
+        }
+
+        // Edit task
+        function editTask(phaseId, taskId) {
+            const phase = projectData.phases.find(p => p.id === phaseId);
+            const task = phase.tasks.find(t => t.id === taskId);
+            const newText = prompt("Edit task:", task.text);
+            if (newText !== null && newText.trim() !== '') {
+                task.text = newText.trim();
+                saveData();
+                renderPhases();
+            }
+        }
+
+        // Delete task
+        function deleteTask(phaseId, taskId) {
+            if (confirm("Delete this task?")) {
+                const phase = projectData.phases.find(p => p.id === phaseId);
+                phase.tasks = phase.tasks.filter(t => t.id !== taskId);
+                saveData();
+                renderPhases();
+            }
+        }
+
+        // Add task
+        function addTask(phaseId) {
+            const taskText = prompt("Enter new task:");
+            if (taskText !== null && taskText.trim() !== '') {
+                const phase = projectData.phases.find(p => p.id === phaseId);
+                const newId = phase.tasks.length > 0 ? Math.max(...phase.tasks.map(t => t.id)) + 1 : 1;
+                phase.tasks.push({
+                    id: newId,
+                    text: taskText.trim(),
+                    completed: false,
+                    level: 0
+                });
+                saveData();
+                renderPhases();
+            }
+        }
+
+        // Change phase status
+        function changePhaseStatus(phaseId) {
+            const phase = projectData.phases.find(p => p.id === phaseId);
+            const statuses = ["Not Started", "Working", "Done"];
+            const currentIndex = statuses.indexOf(phase.status);
+            const newStatus = statuses[(currentIndex + 1) % statuses.length];
+            phase.status = newStatus;
+            saveData();
+            renderPhases();
+        }
+
+        // Delete phase
+        function deletePhase(phaseId) {
+            if (confirm("Delete this entire phase?")) {
+                projectData.phases = projectData.phases.filter(p => p.id !== phaseId);
+                saveData();
+                renderPhases();
+            }
+        }
+
+        // Add new phase
+        function addPhase() {
+            const title = prompt("Enter phase title:");
+            if (title !== null && title.trim() !== '') {
+                const goal = prompt("Enter phase goal:");
+                if (goal !== null) {
+                    const newId = projectData.phases.length > 0 ? Math.max(...projectData.phases.map(p => p.id)) + 1 : 1;
+                    projectData.phases.push({
+                        id: newId,
+                        title: title.trim(),
+                        status: "Not Started",
+                        goal: goal.trim() || "No goal specified",
+                        tasks: [],
+                        collapsed: false
+                    });
+                    saveData();
+                    renderPhases();
+                }
+            }
+        }
+
+        // Handle notes
+        const notesTextarea = document.getElementById('notes');
+        notesTextarea.addEventListener('input', () => {
+            projectData.notes = notesTextarea.value;
+            saveData();
+        });
+
+        // Close modal on background click
+        document.getElementById('jsonModal').addEventListener('click', (e) => {
+            if (e.target.id === 'jsonModal') {
+                closeModal();
+            }
+        });
+
+        // Initialize
+        loadData();
+        notesTextarea.value = projectData.notes;
+        renderPhases();
+    </script>
+</body>
+</html>

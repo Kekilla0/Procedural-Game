@@ -9,6 +9,7 @@ import { Renderable } from './renderable.js';
 import { Grid } from './grid.js';
 import { DATA } from '../data/constants.js';
 import { logger } from '../utils/logger.js';
+import { rectToIsoDiamond } from '../utils/projection.js';
 
 export class Canvas extends Renderable {
   /**
@@ -27,9 +28,9 @@ export class Canvas extends Renderable {
     // Layer data storage
     this.layers = {
       grid: new Grid(width, height), // Initialize grid with canvas dimensions
-      walls: [],  // Walls layer data
-      tiles: [],  // Tiles layer data
-      tokens: []  // Tokens layer data
+      walls: [],  // Walls layer (empty array)
+      tiles: [],  // Tiles layer (empty array)
+      tokens: []  // Tokens layer (empty array)
     };
 
     logger.debug("Canvas Initialized.");
@@ -39,16 +40,39 @@ export class Canvas extends Renderable {
    * Render canvas background to Phaser graphics
    * @param {Phaser.GameObjects.Graphics} graphics - Phaser graphics object to draw to
    * @param {string} viewMode - Current view mode ('2D' or 'ISOMETRIC')
-   * @param {Function} gridToScreen - Function to convert grid coords to screen coords
    */
-  render(graphics, viewMode = '2D', gridToScreen = null) {
+  render(graphics, viewMode = '2D') {
+    // Store current view mode
+    this.viewMode = viewMode;
+    
     // Call parent render for basic setup (debug outline)
     super.render(graphics);
     
-    // Draw background color as filled rectangle
+    // Convert hex color to Phaser number format
     const colorNumber = parseInt(this.color.replace('#', '0x'));
     graphics.fillStyle(colorNumber);
-    graphics.fillRect(this.x, this.y, this.width, this.height);
+    
+    if (viewMode === 'ISOMETRIC') {
+      // Draw canvas as isometric diamond
+      const isoPoints = rectToIsoDiamond(this.x, this.y, this.width, this.height, 64);
+      
+      // Center the isometric view in the viewport
+      const offsetX = 400; // Center horizontally
+      const offsetY = 100; // Offset from top
+      
+      graphics.beginPath();
+      graphics.moveTo(isoPoints[0].screenX + offsetX, isoPoints[0].screenY + offsetY);
+      graphics.lineTo(isoPoints[1].screenX + offsetX, isoPoints[1].screenY + offsetY);
+      graphics.lineTo(isoPoints[2].screenX + offsetX, isoPoints[2].screenY + offsetY);
+      graphics.lineTo(isoPoints[3].screenX + offsetX, isoPoints[3].screenY + offsetY);
+      graphics.closePath();
+      graphics.fillPath();
+      
+      logger.debug('Canvas rendered in isometric mode');
+    } else {
+      // Draw background as normal 2D rectangle
+      graphics.fillRect(this.x, this.y, this.width, this.height);
+    }
     
     // Draw background image on top if it exists (image will overlay color)
     if (this.img) {
@@ -56,22 +80,23 @@ export class Canvas extends Renderable {
       logger.debug("Image rendering not yet implemented");
     }
     
-    // Render grid layer if it exists
+    // Render grid layer - pass viewMode so grid can render isometrically
     if (this.layers.grid) {
-      this.layers.grid.render(graphics, viewMode, gridToScreen);
+      this.layers.grid.render(graphics, viewMode);
     }
     
-    // Render tokens layer
-    this.renderTokens(graphics);
+    // Render tokens layer - pass viewMode so tokens can position isometrically
+    this.renderTokens(graphics, viewMode);
   }
   
   /**
    * Render all tokens in the tokens layer
    * @param {Phaser.GameObjects.Graphics} graphics - Phaser graphics object to draw to
+   * @param {string} viewMode - Current view mode ('2D' or 'ISOMETRIC')
    */
-  renderTokens(graphics) {
+  renderTokens(graphics, viewMode = '2D') {
     for (const token of this.layers.tokens) {
-      token.render(graphics);
+      token.render(graphics, viewMode);
     }
   }
   

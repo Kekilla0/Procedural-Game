@@ -9,6 +9,7 @@
 
 import { Canvas } from './canvas.js';
 import { Player } from './player.js';
+import { Camera } from './camera.js';
 import { DATA } from '../data/constants.js';
 import { logger } from '../utils/logger.js';
 import { toggleDebugPanel, updateDebugPanel } from '../utils/debug.js';
@@ -24,9 +25,6 @@ export class Game extends Phaser.Scene {
    */
   create() {
     logger.info('Game scene created');
-    
-    // Set initial view mode
-    this.viewMode = DATA.VIEW.MODE;
     
     // Create canvas background
     this.canvas = new Canvas(800, 600);
@@ -55,8 +53,15 @@ export class Game extends Phaser.Scene {
     // Add player to tokens layer
     this.canvas.layers.tokens.push(this.player);
     
-    // Setup camera
-    this.setupCamera();
+    // Create camera controller
+    this.cameraController = new Camera(this.cameras.main, {
+      canvasWidth: this.canvas.width,
+      canvasHeight: this.canvas.height,
+      grid: grid
+    });
+    
+    // Make camera follow player
+    this.cameraController.follow(this.player);
     
     // Setup keyboard input
     this.setupInput();
@@ -78,33 +83,6 @@ export class Game extends Phaser.Scene {
     this.render();
     
     logger.debug('Initial render complete');
-  }
-  
-  /**
-   * Setup camera zoom and following
-   */
-  setupCamera() {
-    const camera = this.cameras.main;
-    
-    // Set camera bounds to match canvas size
-    camera.setBounds(0, 0, this.canvas.width, this.canvas.height);
-    
-    // Calculate max zoom (when showing minimum tiles in height)
-    const grid = this.canvas.layers.grid;
-    this.maxZoom = grid.rows / DATA.CAMERA.MIN_TILES_HEIGHT;
-    this.minZoom = 1.0; // Show entire map
-    
-    // Start fully zoomed out
-    camera.setZoom(this.minZoom);
-    
-    // Make camera follow player (smooth following)
-    camera.startFollow(this.player, true, 0.1, 0.1);
-    
-    logger.debug('Camera setup:', {
-      minZoom: this.minZoom,
-      maxZoom: this.maxZoom,
-      following: 'player'
-    });
   }
   
   /**
@@ -131,16 +109,18 @@ export class Game extends Phaser.Scene {
       });
     });
     
-    // Mouse wheel zoom
-    this.input.on('wheel', (pointer, gameObjects, deltaX, deltaY, deltaZ) => {
-      this.handleZoom(deltaY);
-    });
+    // Mouse wheel zoom - TEMPORARILY DISABLED FOR ISOMETRIC DEVELOPMENT
+    // this.input.on('wheel', (pointer, gameObjects, deltaX, deltaY, deltaZ) => {
+    //   this.handleZoom(deltaY);
+    // });
   }
   
   /**
    * Handle mouse wheel zoom
+   * TEMPORARILY DISABLED FOR ISOMETRIC DEVELOPMENT
    * @param {number} deltaY - Mouse wheel delta (positive = zoom out, negative = zoom in)
    */
+  /*
   handleZoom(deltaY) {
     const camera = this.cameras.main;
     const currentZoom = camera.zoom;
@@ -164,6 +144,7 @@ export class Game extends Phaser.Scene {
     
     logger.debug(`Zoom: ${currentZoom.toFixed(2)} → ${targetZoom.toFixed(2)}`);
   }
+  */
   
   /**
    * Handle player input (triggers game logic)
@@ -173,8 +154,9 @@ export class Game extends Phaser.Scene {
     logger.debug('Key pressed:', key);
     
     // Check for view mode toggle
-    if (key === DATA.VIEW.TOGGLE_KEY) {
-      this.toggleViewMode();
+    if (key.toLowerCase() === DATA.VIEW.TOGGLE_KEY) {
+      this.cameraController.toggleViewMode();
+      this.render();
       return;
     }
     
@@ -211,75 +193,37 @@ export class Game extends Phaser.Scene {
   }
   
   /**
-   * Toggle between 2D and isometric view modes
-   */
-  toggleViewMode() {
-    // Toggle mode
-    this.viewMode = this.viewMode === '2D' ? 'ISOMETRIC' : '2D';
-    
-    logger.info(`View mode changed to: ${this.viewMode}`);
-    
-    // Update all entity positions
-    this.updateEntityPositions();
-    
-    // Re-render
-    this.render();
-  }
-  
-  /**
-   * Update all entity pixel positions based on current view mode
-   */
-  updateEntityPositions() {
-    // Update all tokens
-    for (const token of this.canvas.layers.tokens) {
-      const pos = this.gridToScreen(token.col, token.row);
-      token.x = pos.x;
-      token.y = pos.y;
-    }
-    
-    // TODO: Update walls when implemented
-    // TODO: Update tiles when implemented
-  }
-  
-  /**
-   * Convert grid coordinates to screen coordinates based on view mode
-   * @param {number} col - Grid column
-   * @param {number} row - Grid row
-   * @returns {Object} Screen position {x, y}
-   */
-  gridToScreen(col, row) {
-    if (this.viewMode === 'ISOMETRIC') {
-      // Isometric projection
-      const isoX = (col - row) * (DATA.VIEW.ISO_TILE_WIDTH / 2);
-      const isoY = (col + row) * (DATA.VIEW.ISO_TILE_HEIGHT / 2);
-      
-      // Center the isometric view
-      const offsetX = this.canvas.width / 2;
-      const offsetY = 50; // Offset from top
-      
-      return {
-        x: isoX + offsetX,
-        y: isoY + offsetY
-      };
-    } else {
-      // 2D mode
-      const tileSize = this.canvas.layers.grid.size;
-      return {
-        x: col * tileSize,
-        y: row * tileSize
-      };
-    }
-  }
-  
-  /**
    * Render the game (only called when state changes)
    */
   render() {
     // Clear previous frame
     this.graphics.clear();
     
+    // Get current view mode from camera controller
+    const viewMode = this.cameraController.getViewMode();
+    
     // Canvas handles rendering of background, grid, and all layers
-    this.canvas.render(this.graphics, this.viewMode, this.gridToScreen.bind(this));
+    this.canvas.render(this.graphics, viewMode);
+  }
+  
+  /**
+   * Update stats panel with current player stats
+   */
+  updateStatsPanel() {
+    // Base stats
+    document.getElementById('stat-strength').textContent = this.player.strength;
+    document.getElementById('stat-dexterity').textContent = this.player.dexterity;
+    document.getElementById('stat-intelligence').textContent = this.player.intelligence;
+    
+    // Combat stats
+    document.getElementById('stat-health').textContent = this.player.health;
+    document.getElementById('stat-defense').textContent = this.player.defense;
+    document.getElementById('stat-initiative').textContent = this.player.initiative;
+    
+    // Other stats
+    document.getElementById('stat-capacity').textContent = this.player.capacity;
+    document.getElementById('stat-movement').textContent = this.player.movement;
+    document.getElementById('stat-skill').textContent = this.player.skill;
   }
   
   /**

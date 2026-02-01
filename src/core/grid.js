@@ -8,6 +8,7 @@
 import { Renderable } from './renderable.js';
 import { DATA } from '../data/constants.js';
 import { logger } from '../utils/logger.js';
+import { cartesianToIso } from '../utils/projection.js';
 
 export class Grid extends Renderable {
   /**
@@ -48,9 +49,8 @@ export class Grid extends Renderable {
    * Render grid lines to Phaser graphics
    * @param {Phaser.GameObjects.Graphics} graphics - Phaser graphics object to draw to
    * @param {string} viewMode - Current view mode ('2D' or 'ISOMETRIC')
-   * @param {Function} gridToScreen - Function to convert grid coords to screen coords
    */
-  render(graphics, viewMode = '2D', gridToScreen = null) {
+  render(graphics, viewMode = '2D') {
     // Call parent render for debug outline
     super.render(graphics);
     
@@ -60,15 +60,15 @@ export class Grid extends Renderable {
     // Set line style
     graphics.lineStyle(this.lineWidth, colorNumber);
     
-    if (viewMode === 'ISOMETRIC' && gridToScreen) {
-      this.renderIsometric(graphics, gridToScreen);
+    if (viewMode === 'ISOMETRIC') {
+      this.renderIsometric(graphics, colorNumber);
     } else {
       this.render2D(graphics);
     }
   }
   
   /**
-   * Render 2D grid
+   * Render 2D grid (square tiles)
    * @param {Phaser.GameObjects.Graphics} graphics - Phaser graphics object
    */
   render2D(graphics) {
@@ -92,26 +92,34 @@ export class Grid extends Renderable {
   }
   
   /**
-   * Render isometric grid
+   * Render isometric grid (diamond tiles)
    * @param {Phaser.GameObjects.Graphics} graphics - Phaser graphics object
-   * @param {Function} gridToScreen - Function to convert grid coords to screen coords
+   * @param {number} colorNumber - Line color in Phaser format
    */
-  renderIsometric(graphics, gridToScreen) {
-    // Draw diamond-shaped tiles
+  renderIsometric(graphics, colorNumber) {
+    // Use tile size of 64 for isometric projection
+    const isoTileWidth = 64;
+    
+    // Center the isometric grid in the viewport
+    const offsetX = 400;
+    const offsetY = 100;
+    
+    // Draw each tile as a diamond
     for (let row = 0; row < this.rows; row++) {
       for (let col = 0; col < this.columns; col++) {
-        // Get corner positions
-        const topLeft = gridToScreen(col, row);
-        const topRight = gridToScreen(col + 1, row);
-        const bottomRight = gridToScreen(col + 1, row + 1);
-        const bottomLeft = gridToScreen(col, row + 1);
+        // Use GRID coordinates (col, row), not pixel coordinates
+        // cartesianToIso will handle the conversion to screen space
+        const topLeft = cartesianToIso(col, row, isoTileWidth);
+        const topRight = cartesianToIso(col + 1, row, isoTileWidth);
+        const bottomRight = cartesianToIso(col + 1, row + 1, isoTileWidth);
+        const bottomLeft = cartesianToIso(col, row + 1, isoTileWidth);
         
-        // Draw diamond
+        // Draw the diamond outline
         graphics.beginPath();
-        graphics.moveTo(topLeft.x, topLeft.y);
-        graphics.lineTo(topRight.x, topRight.y);
-        graphics.lineTo(bottomRight.x, bottomRight.y);
-        graphics.lineTo(bottomLeft.x, bottomLeft.y);
+        graphics.moveTo(topLeft.screenX + offsetX, topLeft.screenY + offsetY);
+        graphics.lineTo(topRight.screenX + offsetX, topRight.screenY + offsetY);
+        graphics.lineTo(bottomRight.screenX + offsetX, bottomRight.screenY + offsetY);
+        graphics.lineTo(bottomLeft.screenX + offsetX, bottomLeft.screenY + offsetY);
         graphics.closePath();
         graphics.strokePath();
       }

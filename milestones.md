@@ -4,7 +4,7 @@
 
 ---
 
-## Phase 1: Foundation
+## Phase 1: Foundation (Done)
 **Goal: Get basic structure working**
 
 - [x] Clean HTML structure
@@ -15,7 +15,7 @@
 
 ---
 
-## Phase 2: Basic 2D Rendering (Not Started)
+## Phase 2: Basic 2D Rendering (Done)
 **Goal: Draw something on screen**
 - [x] Create Grid 
 - [x] Display debug text
@@ -25,12 +25,16 @@
 
 ---
 
-## Phase 3: Player Movement (Not Started)
+## Phase 3: Player Movement (Working)
 **Goal: Move the player with keyboard**
 - [x] Keyboard input handling
 - [x] Player position updates
+  - [ ] Player possible position grid tint
 - [x] Player moves on screen
   - [x] Keeping tokens bound to the screen
+  - [ ] Mouse Control for movement
+  - [ ] Mouse Hover Tint for Possible Movement
+  - [ ] "Timed Step" for movement greater than 1.
 - [x] Add ability to Zoom in and out.
 - [x] Fixed Field of View (on player if zoomed in.)
 

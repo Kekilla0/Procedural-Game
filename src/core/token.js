@@ -10,6 +10,7 @@
 
 import { Entity } from './entity.js';
 import { logger } from '../utils/logger.js';
+import { cartesianToIso } from '../utils/projection.js';
 
 export class Token extends Entity {
   /**
@@ -126,17 +127,39 @@ export class Token extends Entity {
   /**
    * Render token to Phaser graphics
    * @param {Phaser.GameObjects.Graphics} graphics - Phaser graphics object
+   * @param {string} viewMode - Current view mode ('2D' or 'ISOMETRIC')
    */
-  render(graphics) {
+  render(graphics, viewMode = '2D') {
     // Call parent render for debug outline
     super.render(graphics);
     
     // Convert hex color to Phaser number format
     const colorNumber = parseInt(this.color.replace('#', '0x'));
     
+    let centerX, centerY;
+    
+    if (viewMode === 'ISOMETRIC') {
+      // Use grid coordinates to get isometric position
+      const isoTileWidth = 64;
+      const offsetX = 400;
+      const offsetY = 100;
+      
+      // Get the center of the tile in grid coordinates
+      const tileCenterCol = this.col + 0.5;
+      const tileCenterRow = this.row + 0.5;
+      
+      // Convert to isometric screen coordinates
+      const isoPos = cartesianToIso(tileCenterCol, tileCenterRow, isoTileWidth);
+      
+      centerX = isoPos.screenX + offsetX;
+      centerY = isoPos.screenY + offsetY;
+    } else {
+      // 2D mode - use pixel position
+      centerX = this.x + this.width / 2;
+      centerY = this.y + this.height / 2;
+    }
+    
     // Draw token as filled circle
-    const centerX = this.x + this.width / 2;
-    const centerY = this.y + this.height / 2;
     const radius = this.width * 0.4; // 40% of tile size
     
     graphics.fillStyle(colorNumber);
