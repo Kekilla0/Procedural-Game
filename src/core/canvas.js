@@ -45,8 +45,11 @@ export class Canvas extends Renderable {
     // Store current view mode
     this.viewMode = viewMode;
     
-    // Call parent render for basic setup (debug outline)
-    super.render(graphics);
+    // Only render debug outline in 2D mode (don't call super in isometric)
+    if (viewMode === '2D' && DATA.DEBUG) {
+      graphics.lineStyle(1, 0xFF0000);
+      graphics.strokeRect(this.x, this.y, this.width, this.height);
+    }
     
     // Convert hex color to Phaser number format
     const colorNumber = parseInt(this.color.replace('#', '0x'));
@@ -57,9 +60,10 @@ export class Canvas extends Renderable {
       const isoPoints = rectToIsoDiamond(this.x, this.y, this.width, this.height, 64);
       
       // Center the isometric view in the viewport
-      const offsetX = 400; // Center horizontally
-      const offsetY = 100; // Offset from top
+      const offsetX = 400;
+      const offsetY = 100;
       
+      // Fill the diamond
       graphics.beginPath();
       graphics.moveTo(isoPoints[0].screenX + offsetX, isoPoints[0].screenY + offsetY);
       graphics.lineTo(isoPoints[1].screenX + offsetX, isoPoints[1].screenY + offsetY);
@@ -68,7 +72,15 @@ export class Canvas extends Renderable {
       graphics.closePath();
       graphics.fillPath();
       
-      logger.debug('Canvas rendered in isometric mode');
+      // Draw thick black border around the isometric diamond
+      graphics.lineStyle(15, 0x000000); // 15px black border - very thick and clear
+      graphics.beginPath();
+      graphics.moveTo(isoPoints[0].screenX + offsetX, isoPoints[0].screenY + offsetY);
+      graphics.lineTo(isoPoints[1].screenX + offsetX, isoPoints[1].screenY + offsetY);
+      graphics.lineTo(isoPoints[2].screenX + offsetX, isoPoints[2].screenY + offsetY);
+      graphics.lineTo(isoPoints[3].screenX + offsetX, isoPoints[3].screenY + offsetY);
+      graphics.closePath();
+      graphics.strokePath();
     } else {
       // Draw background as normal 2D rectangle
       graphics.fillRect(this.x, this.y, this.width, this.height);

@@ -67,11 +67,17 @@ export class Camera {
     
     logger.info(`Camera view mode: ${this.viewMode}`);
     
-    // No camera transformations needed - projection is handled by Canvas rendering
     if (this.viewMode === 'ISOMETRIC') {
-      logger.debug('Isometric mode: Canvas will use projection math');
+      // Isometric view extends beyond the original canvas bounds
+      // Remove bounds so camera can follow player anywhere
+      this.camera.removeBounds();
+      
+      logger.debug('Isometric mode: Camera bounds removed for free movement');
     } else {
-      logger.debug('2D mode: Canvas will render normally');
+      // Restore 2D bounds
+      this.camera.setBounds(0, 0, this.canvasWidth, this.canvasHeight);
+      
+      logger.debug('2D mode: Camera bounds restored');
     }
   }
   

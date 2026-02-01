@@ -13,7 +13,7 @@
 /**
  * Debug mode - enables debug rendering (outlines, info, etc)
  */
-const DEBUG = true;
+const DEBUG = false; // Temporarily disabled for isometric testing
 
 // ====================
 // VIEW MODE

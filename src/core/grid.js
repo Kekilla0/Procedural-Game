@@ -51,8 +51,11 @@ export class Grid extends Renderable {
    * @param {string} viewMode - Current view mode ('2D' or 'ISOMETRIC')
    */
   render(graphics, viewMode = '2D') {
-    // Call parent render for debug outline
-    super.render(graphics);
+    // Only render debug outline in 2D mode (manually, don't call super in isometric)
+    if (viewMode === '2D' && DATA.DEBUG) {
+      graphics.lineStyle(1, 0xFF0000);
+      graphics.strokeRect(this.x, this.y, this.width, this.height);
+    }
     
     // Convert hex color string to Phaser number format
     const colorNumber = parseInt(this.color.replace('#', '0x'));

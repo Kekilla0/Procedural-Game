@@ -13,6 +13,7 @@ import { Camera } from './camera.js';
 import { DATA } from '../data/constants.js';
 import { logger } from '../utils/logger.js';
 import { toggleDebugPanel, updateDebugPanel } from '../utils/debug.js';
+import { isoToCartesian } from '../utils/projection.js';
 
 export class Game extends Phaser.Scene {
   
@@ -63,6 +64,9 @@ export class Game extends Phaser.Scene {
     // Make camera follow player
     this.cameraController.follow(this.player);
     
+    // Set initial player screen position for current view mode
+    this.player.updateScreenPosition(this.cameraController.getViewMode());
+    
     // Setup keyboard input
     this.setupInput();
     
@@ -95,9 +99,29 @@ export class Game extends Phaser.Scene {
     
     // Track mouse position for debug
     this.input.on('pointermove', (pointer) => {
-      // Calculate which grid square the mouse is in
-      const col = Math.floor(pointer.x / DATA.GRID.SIZE);
-      const row = Math.floor(pointer.y / DATA.GRID.SIZE);
+      const viewMode = this.cameraController.getViewMode();
+      let col, row;
+      
+      if (viewMode === 'ISOMETRIC') {
+        // Convert isometric screen coordinates back to grid coordinates
+        const isoTileWidth = 64;
+        const offsetX = 400;
+        const offsetY = 100;
+        
+        // Remove offset to get relative position
+        const relativeX = pointer.x - offsetX;
+        const relativeY = pointer.y - offsetY;
+        
+        // Convert back to cartesian grid coordinates
+        const gridPos = isoToCartesian(relativeX, relativeY, isoTileWidth);
+        
+        col = Math.floor(gridPos.x);
+        row = Math.floor(gridPos.y);
+      } else {
+        // 2D mode - simple division
+        col = Math.floor(pointer.x / DATA.GRID.SIZE);
+        row = Math.floor(pointer.y / DATA.GRID.SIZE);
+      }
       
       updateDebugPanel({
         x: Math.floor(pointer.x),
@@ -156,6 +180,13 @@ export class Game extends Phaser.Scene {
     // Check for view mode toggle
     if (key.toLowerCase() === DATA.VIEW.TOGGLE_KEY) {
       this.cameraController.toggleViewMode();
+      
+      // Update all token screen positions for new view mode
+      const viewMode = this.cameraController.getViewMode();
+      for (const token of this.canvas.layers.tokens) {
+        token.updateScreenPosition(viewMode);
+      }
+      
       this.render();
       return;
     }
@@ -181,6 +212,10 @@ export class Game extends Phaser.Scene {
     // Re-render if player moved
     if (moved) {
       logger.debug(`Player moved to (${this.player.col}, ${this.player.row})`);
+      
+      // Update player screen position for camera following
+      const viewMode = this.cameraController.getViewMode();
+      this.player.updateScreenPosition(viewMode);
       
       // Update debug panel with new player position
       updateDebugPanel({

@@ -70,6 +70,34 @@ export class Token extends Entity {
   }
   
   /**
+   * Update screen position based on view mode
+   * Required for camera to follow token correctly in isometric mode
+   * @param {string} viewMode - Current view mode ('2D' or 'ISOMETRIC')
+   */
+  updateScreenPosition(viewMode = '2D') {
+    if (viewMode === 'ISOMETRIC') {
+      // Calculate isometric screen position for camera to follow
+      const isoTileWidth = 64;
+      const offsetX = 400;
+      const offsetY = 100;
+      
+      const tileCenterCol = this.col + 0.5;
+      const tileCenterRow = this.row + 0.5;
+      
+      const isoPos = cartesianToIso(tileCenterCol, tileCenterRow, isoTileWidth);
+      
+      // Update x,y to match visual position for camera following
+      this.x = isoPos.screenX + offsetX - this.width / 2;
+      this.y = isoPos.screenY + offsetY - this.height / 2;
+    } else {
+      // 2D mode - use grid position
+      const tileSize = this.grid.size;
+      this.x = this.col * tileSize;
+      this.y = this.row * tileSize;
+    }
+  }
+  
+  /**
    * Attempt to move in a direction with collision detection
    * @param {string} direction - Direction to move ('up', 'down', 'left', 'right')
    * @returns {boolean} True if movement succeeded, false if blocked
@@ -130,34 +158,17 @@ export class Token extends Entity {
    * @param {string} viewMode - Current view mode ('2D' or 'ISOMETRIC')
    */
   render(graphics, viewMode = '2D') {
-    // Call parent render for debug outline
-    super.render(graphics);
+    // Only render debug outline in 2D mode (isometric position doesn't match grid)
+    if (viewMode === '2D') {
+      super.render(graphics);
+    }
     
     // Convert hex color to Phaser number format
     const colorNumber = parseInt(this.color.replace('#', '0x'));
     
-    let centerX, centerY;
-    
-    if (viewMode === 'ISOMETRIC') {
-      // Use grid coordinates to get isometric position
-      const isoTileWidth = 64;
-      const offsetX = 400;
-      const offsetY = 100;
-      
-      // Get the center of the tile in grid coordinates
-      const tileCenterCol = this.col + 0.5;
-      const tileCenterRow = this.row + 0.5;
-      
-      // Convert to isometric screen coordinates
-      const isoPos = cartesianToIso(tileCenterCol, tileCenterRow, isoTileWidth);
-      
-      centerX = isoPos.screenX + offsetX;
-      centerY = isoPos.screenY + offsetY;
-    } else {
-      // 2D mode - use pixel position
-      centerX = this.x + this.width / 2;
-      centerY = this.y + this.height / 2;
-    }
+    // Use x,y position (already updated by updateScreenPosition for isometric)
+    const centerX = this.x + this.width / 2;
+    const centerY = this.y + this.height / 2;
     
     // Draw token as filled circle
     const radius = this.width * 0.4; // 40% of tile size
