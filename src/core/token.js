@@ -158,10 +158,7 @@ export class Token extends Entity {
    * @param {string} viewMode - Current view mode ('2D' or 'ISOMETRIC')
    */
   render(graphics, viewMode = '2D') {
-    // Only render debug outline in 2D mode (isometric position doesn't match grid)
-    if (viewMode === '2D') {
-      super.render(graphics);
-    }
+    // No debug outline for tokens (not needed)
     
     // Convert hex color to Phaser number format
     const colorNumber = parseInt(this.color.replace('#', '0x'));

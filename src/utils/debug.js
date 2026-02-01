@@ -15,6 +15,7 @@ import { DATA } from '../data/constants.js';
  * @param {number} values.row - Grid row
  * @param {number} values.playerCol - Player grid column
  * @param {number} values.playerRow - Player grid row
+ * @param {number} values.zoom - Camera zoom level
  */
 export function updateDebugPanel(values) {
   // Only update if debug mode is enabled
@@ -36,6 +37,15 @@ export function updateDebugPanel(values) {
   if (values.playerCol !== undefined && values.playerRow !== undefined) {
     const playerElement = document.getElementById('debug-player');
     if (playerElement) playerElement.textContent = `(${values.playerCol}, ${values.playerRow})`;
+  }
+  
+  // Update Zoom level
+  if (values.zoom !== undefined) {
+    const zoomElement = document.getElementById('debug-zoom');
+    if (zoomElement) {
+      const zoomPercent = Math.round(values.zoom * 100);
+      zoomElement.textContent = `${zoomPercent}%`;
+    }
   }
 }
 

@@ -40,30 +40,30 @@ export class Canvas extends Renderable {
    * Render canvas background to Phaser graphics
    * @param {Phaser.GameObjects.Graphics} graphics - Phaser graphics object to draw to
    * @param {string} viewMode - Current view mode ('2D' or 'ISOMETRIC')
+   * @param {Array} movementRange - Optional array of tiles to highlight for movement
    */
-  render(graphics, viewMode = '2D') {
+  render(graphics, viewMode = '2D', movementRange = []) {
     // Store current view mode
     this.viewMode = viewMode;
     
-    // Only render debug outline in 2D mode (don't call super in isometric)
-    if (viewMode === '2D' && DATA.DEBUG) {
-      graphics.lineStyle(1, 0xFF0000);
-      graphics.strokeRect(this.x, this.y, this.width, this.height);
-    }
-    
-    // Convert hex color to Phaser number format
-    const colorNumber = parseInt(this.color.replace('#', '0x'));
-    graphics.fillStyle(colorNumber);
-    
     if (viewMode === 'ISOMETRIC') {
-      // Draw canvas as isometric diamond
-      const isoPoints = rectToIsoDiamond(this.x, this.y, this.width, this.height, 64);
+      // In isometric mode: fill entire viewport with black first
+      graphics.fillStyle(0x000000); // Black background
+      graphics.fillRect(0, 0, 2000, 2000); // Fill large area (bigger than viewport)
+      
+      // Then draw the gray diamond on top
+      const colorNumber = parseInt(this.color.replace('#', '0x'));
+      graphics.fillStyle(colorNumber);
+      
+      // Use GRID dimensions, not pixel dimensions!
+      const grid = this.layers.grid;
+      const isoPoints = rectToIsoDiamond(0, 0, grid.columns, grid.rows, 64);
       
       // Center the isometric view in the viewport
       const offsetX = 400;
       const offsetY = 100;
       
-      // Fill the diamond
+      // Fill the diamond (gray)
       graphics.beginPath();
       graphics.moveTo(isoPoints[0].screenX + offsetX, isoPoints[0].screenY + offsetY);
       graphics.lineTo(isoPoints[1].screenX + offsetX, isoPoints[1].screenY + offsetY);
@@ -72,17 +72,11 @@ export class Canvas extends Renderable {
       graphics.closePath();
       graphics.fillPath();
       
-      // Draw thick black border around the isometric diamond
-      graphics.lineStyle(15, 0x000000); // 15px black border - very thick and clear
-      graphics.beginPath();
-      graphics.moveTo(isoPoints[0].screenX + offsetX, isoPoints[0].screenY + offsetY);
-      graphics.lineTo(isoPoints[1].screenX + offsetX, isoPoints[1].screenY + offsetY);
-      graphics.lineTo(isoPoints[2].screenX + offsetX, isoPoints[2].screenY + offsetY);
-      graphics.lineTo(isoPoints[3].screenX + offsetX, isoPoints[3].screenY + offsetY);
-      graphics.closePath();
-      graphics.strokePath();
+      // No border - just the diamond shape
     } else {
-      // Draw background as normal 2D rectangle
+      // 2D mode: no debug outline, just draw rectangle
+      const colorNumber = parseInt(this.color.replace('#', '0x'));
+      graphics.fillStyle(colorNumber);
       graphics.fillRect(this.x, this.y, this.width, this.height);
     }
     
@@ -92,9 +86,9 @@ export class Canvas extends Renderable {
       logger.debug("Image rendering not yet implemented");
     }
     
-    // Render grid layer - pass viewMode so grid can render isometrically
+    // Render grid layer - pass viewMode and movement range
     if (this.layers.grid) {
-      this.layers.grid.render(graphics, viewMode);
+      this.layers.grid.render(graphics, viewMode, movementRange);
     }
     
     // Render tokens layer - pass viewMode so tokens can position isometrically

@@ -49,13 +49,10 @@ export class Grid extends Renderable {
    * Render grid lines to Phaser graphics
    * @param {Phaser.GameObjects.Graphics} graphics - Phaser graphics object to draw to
    * @param {string} viewMode - Current view mode ('2D' or 'ISOMETRIC')
+   * @param {Array} movementRange - Optional array of {col, row} tiles to highlight
    */
-  render(graphics, viewMode = '2D') {
-    // Only render debug outline in 2D mode (manually, don't call super in isometric)
-    if (viewMode === '2D' && DATA.DEBUG) {
-      graphics.lineStyle(1, 0xFF0000);
-      graphics.strokeRect(this.x, this.y, this.width, this.height);
-    }
+  render(graphics, viewMode = '2D', movementRange = []) {
+    // No debug outline for grid (not needed)
     
     // Convert hex color string to Phaser number format
     const colorNumber = parseInt(this.color.replace('#', '0x'));
@@ -64,17 +61,38 @@ export class Grid extends Renderable {
     graphics.lineStyle(this.lineWidth, colorNumber);
     
     if (viewMode === 'ISOMETRIC') {
-      this.renderIsometric(graphics, colorNumber);
+      this.renderIsometric(graphics, colorNumber, movementRange);
     } else {
-      this.render2D(graphics);
+      this.render2D(graphics, movementRange);
     }
   }
   
   /**
    * Render 2D grid (square tiles)
    * @param {Phaser.GameObjects.Graphics} graphics - Phaser graphics object
+   * @param {Array} movementRange - Array of {col, row} tiles to highlight
    */
-  render2D(graphics) {
+  render2D(graphics, movementRange = []) {
+    // First, render movement highlights (before grid lines)
+    if (movementRange.length > 0) {
+      for (const tile of movementRange) {
+        const x = this.x + (tile.col * this.size);
+        const y = this.y + (tile.row * this.size);
+        
+        if (tile.isHovered) {
+          // Hovered tile - use mouse hover color
+          logger.debug(`2D: Rendering HOVERED tile (${tile.col}, ${tile.row}) - Color: ${DATA.MOUSE.HOVER_COLOR.toString(16)}, Opacity: ${DATA.MOUSE.HOVER_OPACITY}`);
+          graphics.fillStyle(DATA.MOUSE.HOVER_COLOR, DATA.MOUSE.HOVER_OPACITY);
+        } else {
+          // Regular movement range - use movement range color
+          graphics.fillStyle(DATA.MOVEMENT.RANGE_COLOR, DATA.MOVEMENT.RANGE_OPACITY);
+        }
+        
+        graphics.fillRect(x, y, this.size, this.size);
+      }
+    }
+    
+    // Then draw grid lines on top
     // Draw vertical lines
     for (let col = 0; col <= this.columns; col++) {
       const x = this.x + (col * this.size);
@@ -98,8 +116,9 @@ export class Grid extends Renderable {
    * Render isometric grid (diamond tiles)
    * @param {Phaser.GameObjects.Graphics} graphics - Phaser graphics object
    * @param {number} colorNumber - Line color in Phaser format
+   * @param {Array} movementRange - Array of {col, row} tiles to highlight
    */
-  renderIsometric(graphics, colorNumber) {
+  renderIsometric(graphics, colorNumber, movementRange = []) {
     // Use tile size of 64 for isometric projection
     const isoTileWidth = 64;
     
@@ -116,6 +135,29 @@ export class Grid extends Renderable {
         const topRight = cartesianToIso(col + 1, row, isoTileWidth);
         const bottomRight = cartesianToIso(col + 1, row + 1, isoTileWidth);
         const bottomLeft = cartesianToIso(col, row + 1, isoTileWidth);
+        
+        // Check if this tile should be highlighted
+        const highlightTile = movementRange.find(t => t.col === col && t.row === row);
+        
+        // Fill diamond if highlighted
+        if (highlightTile) {
+          if (highlightTile.isHovered) {
+            // Hovered tile - use mouse hover color
+            logger.debug(`ISO: Rendering HOVERED tile (${col}, ${row}) - Color: ${DATA.MOUSE.HOVER_COLOR.toString(16)}, Opacity: ${DATA.MOUSE.HOVER_OPACITY}`);
+            graphics.fillStyle(DATA.MOUSE.HOVER_COLOR, DATA.MOUSE.HOVER_OPACITY);
+          } else {
+            // Regular movement range - use movement range color
+            graphics.fillStyle(DATA.MOVEMENT.RANGE_COLOR, DATA.MOVEMENT.RANGE_OPACITY);
+          }
+          
+          graphics.beginPath();
+          graphics.moveTo(topLeft.screenX + offsetX, topLeft.screenY + offsetY);
+          graphics.lineTo(topRight.screenX + offsetX, topRight.screenY + offsetY);
+          graphics.lineTo(bottomRight.screenX + offsetX, bottomRight.screenY + offsetY);
+          graphics.lineTo(bottomLeft.screenX + offsetX, bottomLeft.screenY + offsetY);
+          graphics.closePath();
+          graphics.fillPath();
+        }
         
         // Draw the diamond outline
         graphics.beginPath();

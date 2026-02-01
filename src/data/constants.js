@@ -13,7 +13,7 @@
 /**
  * Debug mode - enables debug rendering (outlines, info, etc)
  */
-const DEBUG = false; // Temporarily disabled for isometric testing
+const DEBUG = true;
 
 // ====================
 // VIEW MODE
@@ -65,6 +65,23 @@ const CAMERA = {
   ZOOM_SMOOTH_DURATION: 200  // Duration of zoom animation in milliseconds
 };
 
+/**
+ * Movement settings
+ */
+const MOVEMENT = {
+  STEP_DELAY: 100,        // Delay in ms between movement steps (0.1 seconds)
+  RANGE_COLOR: 0x87CEEB,  // Light blue color for movement range
+  RANGE_OPACITY: 0.5      // Opacity for movement range (0-1)
+};
+
+/**
+ * Mouse interaction settings
+ */
+const MOUSE = {
+  HOVER_COLOR: 0xFFFFFF,    // White color for hovered tile
+  HOVER_OPACITY: 0.4        // Opacity for hovered tile (0-1)
+};
+
 // ====================
 // STATS CALCULATIONS
 // ====================
@@ -73,20 +90,20 @@ const CAMERA = {
  * Formulas for calculating sub-stats from base stats
  * Use @variable to reference stat values (e.g., @strength, @dexterity)
  * Use @bonuses for any additional modifiers
- * These will need balancing during game design
+ * Math.js evaluates these formulas and supports parentheses
  */
 const STATS = {
   // Health calculation
-  HEALTH_CALCULATION: "@strength * 5 + @bonuses",
+  HEALTH_CALCULATION: "(1 + @strength) * 5 + @bonuses",
   
   // Capacity calculation
-  CAPACITY_CALCULATION: "@strength * 2 + @bonuses",
+  CAPACITY_CALCULATION: "10 + (@strength / 2) + @bonuses",
   
   // Defense calculation
   DEFENSE_CALCULATION: "@dexterity + 5 + @bonuses",
   
   // Movement calculation
-  MOVEMENT_CALCULATION: "2 + @dexterity / 3 + @bonuses",
+  MOVEMENT_CALCULATION: "2 + (@dexterity / 3) + @bonuses",
   
   // Initiative calculation
   INITIATIVE_CALCULATION: "@intelligence + @bonuses",
@@ -105,5 +122,7 @@ export const DATA = {
   CANVAS,
   GRID,
   CAMERA,
+  MOVEMENT,
+  MOUSE,
   STATS
 };

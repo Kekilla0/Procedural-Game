@@ -33,10 +33,10 @@ export class Game extends Phaser.Scene {
     // Create graphics object for rendering
     this.graphics = this.add.graphics();
     
-    // Create player at grid position (5, 5)
+    // Create player at grid position (20, 20) - centered to avoid debug panel
     const grid = this.canvas.layers.grid;
-    const playerCol = 5;
-    const playerRow = 5;
+    const playerCol = 20;
+    const playerRow = 20;
     const tileSize = grid.size;
     
     this.player = new Player(
@@ -80,7 +80,8 @@ export class Game extends Phaser.Scene {
       col: 0,
       row: 0,
       playerCol: this.player.col,
-      playerRow: this.player.row
+      playerRow: this.player.row,
+      zoom: this.cameras.main.zoom
     });
     
     // Initial render
@@ -97,20 +98,29 @@ export class Game extends Phaser.Scene {
       this.handleInput(event.key);
     });
     
-    // Track mouse position for debug
+    // Track hovered tile for highlighting
+    this.hoveredTile = null;
+    
+    // Track mouse position for debug and hover highlighting
     this.input.on('pointermove', (pointer) => {
       const viewMode = this.cameraController.getViewMode();
+      
+      // Convert pointer to world coordinates (accounts for zoom and scroll)
+      const worldPoint = this.cameras.main.getWorldPoint(pointer.x, pointer.y);
+      const worldX = worldPoint.x;
+      const worldY = worldPoint.y;
+      
       let col, row;
       
       if (viewMode === 'ISOMETRIC') {
-        // Convert isometric screen coordinates back to grid coordinates
+        // Convert isometric world coordinates back to grid coordinates
         const isoTileWidth = 64;
         const offsetX = 400;
         const offsetY = 100;
         
         // Remove offset to get relative position
-        const relativeX = pointer.x - offsetX;
-        const relativeY = pointer.y - offsetY;
+        const relativeX = worldX - offsetX;
+        const relativeY = worldY - offsetY;
         
         // Convert back to cartesian grid coordinates
         const gridPos = isoToCartesian(relativeX, relativeY, isoTileWidth);
@@ -118,9 +128,23 @@ export class Game extends Phaser.Scene {
         col = Math.floor(gridPos.x);
         row = Math.floor(gridPos.y);
       } else {
-        // 2D mode - simple division
-        col = Math.floor(pointer.x / DATA.GRID.SIZE);
-        row = Math.floor(pointer.y / DATA.GRID.SIZE);
+        // 2D mode - simple division using world coordinates
+        col = Math.floor(worldX / DATA.GRID.SIZE);
+        row = Math.floor(worldY / DATA.GRID.SIZE);
+      }
+      
+      // Update hovered tile if within movement range
+      const movementRange = this.player.getMovementRange();
+      const isInRange = movementRange.some(t => t.col === col && t.row === row);
+      
+      if (isInRange) {
+        this.hoveredTile = { col, row };
+        logger.debug(`Setting hoveredTile to (${col}, ${row}) in ${viewMode} mode`);
+      } else {
+        if (this.hoveredTile) {
+          logger.debug(`Clearing hoveredTile (was at ${this.hoveredTile.col}, ${this.hoveredTile.row})`);
+        }
+        this.hoveredTile = null;
       }
       
       updateDebugPanel({
@@ -129,27 +153,33 @@ export class Game extends Phaser.Scene {
         col: col,
         row: row,
         playerCol: this.player.col,
-        playerRow: this.player.row
+        playerRow: this.player.row,
+        zoom: this.cameras.main.zoom
       });
+      
+      // Re-render to show hover highlight
+      this.render();
     });
     
-    // Mouse wheel zoom - TEMPORARILY DISABLED FOR ISOMETRIC DEVELOPMENT
-    // this.input.on('wheel', (pointer, gameObjects, deltaX, deltaY, deltaZ) => {
-    //   this.handleZoom(deltaY);
-    // });
+    // Click to move
+    this.input.on('pointerdown', (pointer) => {
+      if (this.hoveredTile) {
+        this.movePlayerToTile(this.hoveredTile.col, this.hoveredTile.row);
+      }
+    });
+    
+    // Mouse wheel zoom
+    this.input.on('wheel', (pointer, gameObjects, deltaX, deltaY, deltaZ) => {
+      this.handleZoom(deltaY);
+    });
   }
   
   /**
    * Handle mouse wheel zoom
-   * TEMPORARILY DISABLED FOR ISOMETRIC DEVELOPMENT
    * @param {number} deltaY - Mouse wheel delta (positive = zoom out, negative = zoom in)
    */
-  /*
   handleZoom(deltaY) {
-    const camera = this.cameras.main;
-    const currentZoom = camera.zoom;
-    
-    // Calculate new zoom level
+    const currentZoom = this.cameras.main.zoom;
     let targetZoom = currentZoom;
     
     if (deltaY < 0) {
@@ -160,15 +190,19 @@ export class Game extends Phaser.Scene {
       targetZoom -= DATA.CAMERA.ZOOM_SPEED;
     }
     
-    // Clamp zoom to min/max
-    targetZoom = Math.max(this.minZoom, Math.min(this.maxZoom, targetZoom));
+    // Clamp to limits
+    targetZoom = Math.max(this.cameraController.minZoom, Math.min(this.cameraController.maxZoom, targetZoom));
     
     // Apply smooth zoom
-    camera.zoomTo(targetZoom, DATA.CAMERA.ZOOM_SMOOTH_DURATION);
+    this.cameras.main.zoomTo(targetZoom, DATA.CAMERA.ZOOM_SMOOTH_DURATION);
+    
+    // Update debug panel with new zoom
+    updateDebugPanel({
+      zoom: targetZoom
+    });
     
     logger.debug(`Zoom: ${currentZoom.toFixed(2)} → ${targetZoom.toFixed(2)}`);
   }
-  */
   
   /**
    * Handle player input (triggers game logic)
@@ -211,7 +245,7 @@ export class Game extends Phaser.Scene {
     
     // Re-render if player moved
     if (moved) {
-      logger.debug(`Player moved to (${this.player.col}, ${this.player.row})`);
+      logger.debug(`Player moved to grid (${this.player.col}, ${this.player.row})`);
       
       // Update player screen position for camera following
       const viewMode = this.cameraController.getViewMode();
@@ -220,11 +254,98 @@ export class Game extends Phaser.Scene {
       // Update debug panel with new player position
       updateDebugPanel({
         playerCol: this.player.col,
-        playerRow: this.player.row
+        playerRow: this.player.row,
+        zoom: this.cameras.main.zoom
       });
       
       this.render();
     }
+  }
+  
+  /**
+   * Move player to target tile with pathfinding and animation
+   * @param {number} targetCol - Target column
+   * @param {number} targetRow - Target row
+   */
+  async movePlayerToTile(targetCol, targetRow) {
+    // Calculate path (simple Manhattan pathfinding)
+    const path = this.findPath(this.player.col, this.player.row, targetCol, targetRow);
+    
+    if (path.length === 0) {
+      logger.debug('No path found to target');
+      return;
+    }
+    
+    // Move along path one step at a time
+    for (const step of path) {
+      // Determine direction
+      const dCol = step.col - this.player.col;
+      const dRow = step.row - this.player.row;
+      
+      let direction;
+      if (dRow < 0) direction = 'up';
+      else if (dRow > 0) direction = 'down';
+      else if (dCol < 0) direction = 'left';
+      else if (dCol > 0) direction = 'right';
+      
+      // Move player
+      const moved = this.player.move(direction);
+      
+      if (!moved) {
+        logger.debug('Movement blocked');
+        break;
+      }
+      
+      // Update screen position for camera following
+      const viewMode = this.cameraController.getViewMode();
+      this.player.updateScreenPosition(viewMode);
+      
+      // Update debug panel
+      updateDebugPanel({
+        playerCol: this.player.col,
+        playerRow: this.player.row
+      });
+      
+      // Render
+      this.render();
+      
+      // Wait before next step
+      await new Promise(resolve => setTimeout(resolve, DATA.MOVEMENT.STEP_DELAY));
+    }
+  }
+  
+  /**
+   * Find path from start to end (simple Manhattan distance pathfinding)
+   * @param {number} startCol - Start column
+   * @param {number} startRow - Start row
+   * @param {number} endCol - End column
+   * @param {number} endRow - End row
+   * @returns {Array} Path as array of {col, row} steps
+   */
+  findPath(startCol, startRow, endCol, endRow) {
+    const path = [];
+    let currentCol = startCol;
+    let currentRow = startRow;
+    
+    // Simple greedy pathfinding - move one axis at a time
+    while (currentCol !== endCol || currentRow !== endRow) {
+      // Move vertically first
+      if (currentRow < endRow) {
+        currentRow++;
+      } else if (currentRow > endRow) {
+        currentRow--;
+      }
+      // Then horizontally
+      else if (currentCol < endCol) {
+        currentCol++;
+      } else if (currentCol > endCol) {
+        currentCol--;
+      }
+      
+      path.push({ col: currentCol, row: currentRow });
+    }
+    
+    return path;
   }
   
   /**
@@ -237,28 +358,20 @@ export class Game extends Phaser.Scene {
     // Get current view mode from camera controller
     const viewMode = this.cameraController.getViewMode();
     
+    // Get player movement range for highlighting
+    const movementRange = this.player.getMovementRange();
+    
+    // Mark the hovered tile if it exists (don't duplicate, just mark it)
+    const highlights = movementRange.map(tile => {
+      if (this.hoveredTile && tile.col === this.hoveredTile.col && tile.row === this.hoveredTile.row) {
+        logger.debug(`Marking tile (${tile.col}, ${tile.row}) as hovered in ${viewMode} mode`);
+        return { ...tile, isHovered: true };
+      }
+      return tile;
+    });
+    
     // Canvas handles rendering of background, grid, and all layers
-    this.canvas.render(this.graphics, viewMode);
-  }
-  
-  /**
-   * Update stats panel with current player stats
-   */
-  updateStatsPanel() {
-    // Base stats
-    document.getElementById('stat-strength').textContent = this.player.strength;
-    document.getElementById('stat-dexterity').textContent = this.player.dexterity;
-    document.getElementById('stat-intelligence').textContent = this.player.intelligence;
-    
-    // Combat stats
-    document.getElementById('stat-health').textContent = this.player.health;
-    document.getElementById('stat-defense').textContent = this.player.defense;
-    document.getElementById('stat-initiative').textContent = this.player.initiative;
-    
-    // Other stats
-    document.getElementById('stat-capacity').textContent = this.player.capacity;
-    document.getElementById('stat-movement').textContent = this.player.movement;
-    document.getElementById('stat-skill').textContent = this.player.skill;
+    this.canvas.render(this.graphics, viewMode, highlights);
   }
   
   /**
