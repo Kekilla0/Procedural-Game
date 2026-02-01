@@ -1,29 +1,33 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <title>Hex Engine (Milestone 1)</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <link rel=”stylesheet” href=”style.css”>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Isometric Roguelike</title>
+  
+  <!-- Phaser 3 -->
+  <script src="https://cdn.jsdelivr.net/npm/phaser@3.80.1/dist/phaser.min.js"></script>
+  
+  <!-- CSS -->
+  <link rel="stylesheet" href="styles.css">
 </head>
 <body>
-
-  <div id="canvas">
-    <canvas id="background"></canvas>
-    <canvas id="grid"></canvas>
-    <canvas id="tiles"></canvas>
-    <canvas id="walls"></canvas>
-    <canvas id="tokens"></canvas>
+  <div id="container">
+    <!-- Game canvas will be inserted here by Phaser -->
+    <div id="game"></div>
+    
+    <!-- Debug panel -->
+    <div id="debug-panel">
+      <h3>Debug Info</h3>
+      <div id="debug-content">
+        <p>Position: <span id="debug-position">(0, 0)</span></p>
+        <p>Grid: <span id="debug-grid">(0, 0)</span></p>
+        <p>Player: <span id="debug-player">(0, 0)</span></p>
+      </div>
+    </div>
   </div>
 
-  <div id="ui">
-    <span id="posLabel">(?, ?, ?)</span>
-    <span id="rotLabel">rot 0</span>
-
-    <button id="rotLeft">⟲ Q</button>
-    <button id="rotRight">E ⟳</button>
-  </div>
-
+  <!-- Game script -->
   <script type="module" src="./src/main.js"></script>
 </body>
 </html>

@@ -1,0 +1,155 @@
+/**
+ * token.js - Token class for players and monsters
+ * 
+ * Token represents entities that can move and take turns:
+ * - Players
+ * - Monsters/Enemies
+ * 
+ * Extends Entity to inherit stats and position.
+ */
+
+import { Entity } from './entity.js';
+import { logger } from '../utils/logger.js';
+
+export class Token extends Entity {
+  /**
+   * Create a new Token
+   * @param {number} x - X position in pixels
+   * @param {number} y - Y position in pixels
+   * @param {number} width - Width in pixels
+   * @param {number} height - Height in pixels
+   * @param {Object} options - Token configuration
+   * @param {Grid} options.grid - Grid instance (required)
+   * @param {number} [options.col] - Grid column position
+   * @param {number} [options.row] - Grid row position
+   * @param {string} [options.name] - Token name
+   * @param {string} [options.color] - Token color (hex string)
+   * @param {string} [options.img] - Token image path
+   * @param {Object} [options.stats] - Stat overrides (can include base stats or sub-stats)
+   */
+  constructor(x, y, width, height, options = {}) {
+    // Extract stats from options if provided
+    const stats = options.stats || {};
+    
+    // Call Entity constructor with standardized signature
+    super(x, y, width, height, {
+      grid: options.grid,
+      col: options.col,
+      row: options.row,
+      ...stats // Spread stat overrides (strength, dexterity, intelligence, health, etc.)
+    });
+    
+    // Token properties
+    this.name = options.name || 'Token';
+    this.color = options.color || '#FFFFFF';
+    this.img = options.img || null;
+    
+    // Calculate stats after initialization (only calculates non-overridden stats)
+    this.calculateStats();
+    
+    logger.debug('Token created:', {
+      name: this.name,
+      position: `(${this.col}, ${this.row})`,
+      health: this.health
+    });
+  }
+  
+  /**
+   * Move token to new grid position
+   * Updates both grid and pixel positions
+   */
+  moveTo(col, row) {
+    this.col = col;
+    this.row = row;
+    
+    // Update pixel position
+    const tileSize = this.grid.size;
+    this.x = col * tileSize;
+    this.y = row * tileSize;
+  }
+  
+  /**
+   * Attempt to move in a direction with collision detection
+   * @param {string} direction - Direction to move ('up', 'down', 'left', 'right')
+   * @returns {boolean} True if movement succeeded, false if blocked
+   */
+  move(direction) {
+    // Calculate target position based on direction
+    let targetCol = this.col;
+    let targetRow = this.row;
+    
+    switch(direction.toLowerCase()) {
+      case 'up':
+        targetRow -= 1;
+        break;
+      case 'down':
+        targetRow += 1;
+        break;
+      case 'left':
+        targetCol -= 1;
+        break;
+      case 'right':
+        targetCol += 1;
+        break;
+      default:
+        logger.error('Invalid direction:', direction);
+        return false;
+    }
+    
+    // Check collision with map boundaries
+    if (targetCol < 0 || targetCol >= this.grid.columns || 
+        targetRow < 0 || targetRow >= this.grid.rows) {
+      logger.debug('Movement blocked: out of bounds');
+      return false;
+    }
+    
+    // TODO: Check collision with walls
+    // - Loop through canvas.layers.walls
+    // - Check if any wall is at (targetCol, targetRow)
+    // - If wall.passable === false, return false
+    
+    // TODO: Check collision with tiles
+    // - Loop through canvas.layers.tiles
+    // - Check if any tile is at (targetCol, targetRow)
+    // - If tile.passable === false, return false
+    
+    // TODO: Check collision with other tokens
+    // - Loop through canvas.layers.tokens
+    // - Check if any token (except this) is at (targetCol, targetRow)
+    // - If token.passable === false, return false
+    
+    // No collision detected - perform movement
+    this.moveTo(targetCol, targetRow);
+    return true;
+  }
+  
+  /**
+   * Render token to Phaser graphics
+   * @param {Phaser.GameObjects.Graphics} graphics - Phaser graphics object
+   */
+  render(graphics) {
+    // Call parent render for debug outline
+    super.render(graphics);
+    
+    // Convert hex color to Phaser number format
+    const colorNumber = parseInt(this.color.replace('#', '0x'));
+    
+    // Draw token as filled circle
+    const centerX = this.x + this.width / 2;
+    const centerY = this.y + this.height / 2;
+    const radius = this.width * 0.4; // 40% of tile size
+    
+    graphics.fillStyle(colorNumber);
+    graphics.fillCircle(centerX, centerY, radius);
+    
+    // Draw outline
+    graphics.lineStyle(2, 0x000000);
+    graphics.strokeCircle(centerX, centerY, radius);
+    
+    // Render image on top of circle if it exists (gives it a border)
+    if (this.img) {
+      // TODO: Image rendering not yet implemented
+      logger.debug('Image rendering not yet implemented');
+    }
+  }
+}

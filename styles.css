@@ -1,0 +1,83 @@
+/**
+ * styles.css - Main stylesheet for Isometric Roguelike
+ */
+
+/* ===========================
+   RESET & BASE STYLES
+   =========================== */
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  font-family: 'Courier New', monospace;
+  background-color: #1a1a1a;
+  color: #ffffff;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 100vh;
+}
+
+/* ===========================
+   CONTAINER
+   =========================== */
+
+#container {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 20px;
+  padding: 20px;
+}
+
+/* ===========================
+   GAME CANVAS
+   =========================== */
+
+#game {
+  border: 2px solid #00ff00;
+  box-shadow: 0 0 20px rgba(0, 255, 0, 0.3);
+}
+
+#game canvas {
+  display: block;
+}
+
+/* ===========================
+   DEBUG PANEL
+   =========================== */
+
+#debug-panel {
+  position: absolute;
+  top: 20px;
+  left: 20px;
+  background-color: rgba(0, 0, 0, 0.8);
+  border: 2px solid #00ff00;
+  padding: 15px;
+  min-width: 200px;
+  font-family: 'Courier New', monospace;
+  color: #00ff00;
+  box-shadow: 0 0 10px rgba(0, 255, 0, 0.3);
+}
+
+#debug-panel h3 {
+  margin: 0 0 10px 0;
+  font-size: 16px;
+  border-bottom: 1px solid #00ff00;
+  padding-bottom: 5px;
+}
+
+#debug-content p {
+  margin: 5px 0;
+  font-size: 14px;
+}
+
+#debug-content span {
+  color: #ffffff;
+  font-weight: bold;
+}
