@@ -1,0 +1,349 @@
+{
+  "phases": [
+    {
+      "id": 1,
+      "title": "Phase 1: Foundation",
+      "status": "Done",
+      "goal": "Get basic structure working",
+      "tasks": [
+        {
+          "id": 1,
+          "text": "Clean HTML structure",
+          "completed": true,
+          "level": 0
+        },
+        {
+          "id": 2,
+          "text": "Separate CSS file with comments",
+          "completed": true,
+          "level": 0
+        },
+        {
+          "id": 3,
+          "text": "Phaser 3 initialized",
+          "completed": true,
+          "level": 0
+        },
+        {
+          "id": 4,
+          "text": "Logger utility working",
+          "completed": true,
+          "level": 0
+        },
+        {
+          "id": 5,
+          "text": "Empty canvas showing",
+          "completed": true,
+          "level": 0
+        }
+      ]
+    },
+    {
+      "id": 2,
+      "title": "Phase 2: Basic 2D Rendering",
+      "status": "Done",
+      "goal": "Draw something on screen",
+      "tasks": [
+        {
+          "id": 1,
+          "text": "Create Grid",
+          "completed": true,
+          "level": 0
+        },
+        {
+          "id": 2,
+          "text": "Display debug text",
+          "completed": true,
+          "level": 0
+        },
+        {
+          "id": 3,
+          "text": "Entity basic data structure",
+          "completed": true,
+          "level": 0
+        },
+        {
+          "id": 4,
+          "text": "Draw a colored circle (player)",
+          "completed": true,
+          "level": 0
+        },
+        {
+          "id": 5,
+          "text": "Snap player to grid",
+          "completed": true,
+          "level": 0
+        }
+      ]
+    },
+    {
+      "id": 3,
+      "title": "Phase 3: Player Movement",
+      "status": "Working",
+      "goal": "Move the player with keyboard",
+      "tasks": [
+        {
+          "id": 1,
+          "text": "Keyboard input handling",
+          "completed": true,
+          "level": 0
+        },
+        {
+          "id": 2,
+          "text": "Player position updates",
+          "completed": true,
+          "level": 0
+        },
+        {
+          "id": 3,
+          "text": "Player possible position grid tint",
+          "completed": false,
+          "level": 1
+        },
+        {
+          "id": 4,
+          "text": "Player moves on screen",
+          "completed": true,
+          "level": 0
+        },
+        {
+          "id": 5,
+          "text": "Keeping tokens bound to the screen",
+          "completed": true,
+          "level": 1
+        },
+        {
+          "id": 6,
+          "text": "Mouse Control for movement",
+          "completed": false,
+          "level": 1
+        },
+        {
+          "id": 7,
+          "text": "Mouse Hover Tint for Possible Movement",
+          "completed": false,
+          "level": 1
+        },
+        {
+          "id": 8,
+          "text": "\"Timed Step\" for movement greater than 1.",
+          "completed": false,
+          "level": 1
+        },
+        {
+          "id": 9,
+          "text": "Add ability to Zoom in and out.",
+          "completed": false,
+          "level": 0
+        },
+        {
+          "id": 10,
+          "text": "Fixed Field of View (on player if zoomed in.)",
+          "completed": true,
+          "level": 0
+        }
+      ]
+    },
+    {
+      "id": 4,
+      "title": "Phase 4: View Modes",
+      "status": "Working",
+      "goal": "Toggle between 2D and isometric",
+      "tasks": [
+        {
+          "id": 3,
+          "text": "Isometric Switching",
+          "completed": true,
+          "level": 0
+        },
+        {
+          "id": 4,
+          "text": "Isometric Map",
+          "completed": true,
+          "level": 1
+        },
+        {
+          "id": 5,
+          "text": "Isometric Control",
+          "completed": true,
+          "level": 1
+        },
+        {
+          "id": 6,
+          "text": "Isometric Map Rotation",
+          "completed": false,
+          "level": 0
+        },
+        {
+          "id": 7,
+          "text": "Right Rotation E",
+          "completed": false,
+          "level": 1
+        },
+        {
+          "id": 1,
+          "text": "Isometric Rendering (X Key)",
+          "completed": false,
+          "level": 0
+        },
+        {
+          "id": 8,
+          "text": "Left Rotation Q",
+          "completed": false,
+          "level": 1
+        }
+      ]
+    },
+    {
+      "id": 5,
+      "title": "Phase 5: Walls & Collision",
+      "status": "Not Started",
+      "goal": "Add obstacles",
+      "tasks": [
+        {
+          "id": 1,
+          "text": "Interactable data structure",
+          "completed": false,
+          "level": 0
+        },
+        {
+          "id": 2,
+          "text": "Wall data structure",
+          "completed": false,
+          "level": 0
+        },
+        {
+          "id": 3,
+          "text": "Draw walls",
+          "completed": false,
+          "level": 0
+        },
+        {
+          "id": 4,
+          "text": "Collision detection with walls",
+          "completed": false,
+          "level": 0
+        },
+        {
+          "id": 5,
+          "text": "Doors (open/close)",
+          "completed": false,
+          "level": 0
+        }
+      ]
+    },
+    {
+      "id": 6,
+      "title": "Phase 6: Entities",
+      "status": "Not Started",
+      "goal": "Add monsters, tiles, and items",
+      "tasks": [
+        {
+          "id": 12,
+          "text": "Image Integration",
+          "completed": false,
+          "level": 0
+        },
+        {
+          "id": 1,
+          "text": "Image Backgrounds",
+          "completed": false,
+          "level": 1
+        },
+        {
+          "id": 2,
+          "text": "Image Tokens",
+          "completed": false,
+          "level": 1
+        },
+        {
+          "id": 3,
+          "text": "Image Walls (possible random array??)",
+          "completed": false,
+          "level": 1
+        },
+        {
+          "id": 4,
+          "text": "Monsters",
+          "completed": false,
+          "level": 0
+        },
+        {
+          "id": 5,
+          "text": "Tiles",
+          "completed": false,
+          "level": 0
+        },
+        {
+          "id": 6,
+          "text": "Items",
+          "completed": false,
+          "level": 1
+        },
+        {
+          "id": 7,
+          "text": "Containers",
+          "completed": false,
+          "level": 1
+        },
+        {
+          "id": 8,
+          "text": "Morph Monsters to Containers",
+          "completed": false,
+          "level": 1
+        },
+        {
+          "id": 9,
+          "text": "Morph Item Tiles to Stored Items",
+          "completed": false,
+          "level": 1
+        },
+        {
+          "id": 10,
+          "text": "Inventory System (Monsters/Player)",
+          "completed": false,
+          "level": 0
+        },
+        {
+          "id": 11,
+          "text": "Save/Load System",
+          "completed": false,
+          "level": 0
+        }
+      ]
+    },
+    {
+      "id": 7,
+      "title": "Phase 7: Procedural Generation",
+      "status": "Not Started",
+      "goal": "Create procedural generation of basic aspects of the game",
+      "tasks": [
+        {
+          "id": 1,
+          "text": "Basic Quests",
+          "completed": false,
+          "level": 0
+        },
+        {
+          "id": 2,
+          "text": "Basic Maps",
+          "completed": false,
+          "level": 0
+        },
+        {
+          "id": 3,
+          "text": "Basic Enemies",
+          "completed": false,
+          "level": 0
+        },
+        {
+          "id": 4,
+          "text": "Basic Items",
+          "completed": false,
+          "level": 0
+        }
+      ]
+    }
+  ],
+  "notes": "- Initiative system\n- Combat system\n  - Item system (using, storing, wielding)\n  - Leveling system\n    - Skill System\n- Trap system\n- Magic system\n  - Magic Resistances"
+}
