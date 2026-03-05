@@ -11,7 +11,6 @@
 import { Entity } from './entity.js';
 import { logger } from '../utils/logger.js';
 import { cartesianToIso } from '../utils/projection.js';
-import { rotatePixelPosition } from '../utils/rotation.js';
 import { DATA } from '../data/constants.js';
 
 export class Token extends Entity {
@@ -51,17 +50,99 @@ export class Token extends Entity {
     // Reference to all tokens for collision detection
     this.tokens = options.tokens || null;
     
-    // Movement tracking for turns (used by both Player and Enemy)
-    this.movementRemaining = this.movement;
-    
     // Calculate stats after initialization (only calculates non-overridden stats)
     this.calculateStats();
+    
+    // Movement tracking for turns - MUST come after calculateStats()
+    this.movementRemaining = this.movement;
     
     logger.debug('Token created:', {
       name: this.name,
       position: `(${this.col}, ${this.row})`,
-      health: this.health
+      health: this.health,
+      movement: this.movement,
+      movementRemaining: this.movementRemaining
     });
+  }
+  
+  /**
+   * Static method to spawn a token at a random position within bounds
+   * @param {Class} TokenClass - Token class to instantiate (Player, Enemy, etc.)
+   * @param {Canvas} canvas - Canvas instance (contains grid, tokens array)
+   * @param {Object} options - Spawn options
+   * @param {number} options.x - Top-left column of spawn area
+   * @param {number} options.y - Top-left row of spawn area  
+   * @param {number} options.w - Width of spawn area in tiles
+   * @param {number} options.h - Height of spawn area in tiles
+   * @param {string} options.name - Token name
+   * @returns {Token|null} The spawned token or null if failed
+   */
+  static spawn(TokenClass, canvas, options = {}) {
+    const grid = canvas.layers.grid;
+    const tokens = canvas.layers.tokens;
+    const tileSize = grid.size;
+    
+    const { x = 0, y = 0, w = grid.columns, h = grid.rows, name = 'Token' } = options;
+    
+    let col, row;
+    let attempts = 0;
+    const maxAttempts = 100;
+    
+    // Find random unoccupied position within bounds
+    do {
+      col = x + Math.floor(Math.random() * w);
+      row = y + Math.floor(Math.random() * h);
+      attempts++;
+      
+      // Ensure within grid bounds
+      if (col < 0 || col >= grid.columns || row < 0 || row >= grid.rows) {
+        continue;
+      }
+      
+      // Check if position is occupied by another token
+      const occupied = tokens.some(token => token.col === col && token.row === row);
+      
+      // TODO: Check if position is on impassable tile
+      // const impassableTile = canvas.layers.tiles.some(tile => 
+      //   tile.col === col && tile.row === row && !tile.passable
+      // );
+      
+      // TODO: Check if position is on wall
+      // const wall = canvas.layers.walls.some(wall => 
+      //   wall.col === col && wall.row === row && !wall.passable
+      // );
+      
+      if (!occupied) {
+        break;
+      }
+      
+      if (attempts >= maxAttempts) {
+        logger.error(`Failed to spawn ${name} after ${maxAttempts} attempts in area (${x}, ${y}, ${w}, ${h})`);
+        return null;
+      }
+    } while (true);
+    
+    // Create token at random position
+    const token = new TokenClass(
+      col * tileSize,
+      row * tileSize,
+      tileSize,
+      tileSize,
+      {
+        grid: grid,
+        tokens: tokens,
+        col: col,
+        row: row,
+        name: name
+      }
+    );
+    
+    // Add token to tokens layer
+    tokens.push(token);
+    
+    logger.info(`Spawned ${name} at (${col}, ${row})`);
+    
+    return token;
   }
   
   /**
@@ -80,10 +161,12 @@ export class Token extends Entity {
   
   /**
    * Update screen position based on view mode
-   * Required for camera to follow token correctly in isometric mode
+   * Grid coordinates (col, row) are the source of truth - never mutated
    * @param {string} viewMode - Current view mode ('2D' or 'ISOMETRIC')
    */
   updateScreenPosition(viewMode = '2D') {
+    const tileSize = this.grid.size;
+    
     if (viewMode === 'ISOMETRIC') {
       // Calculate isometric screen position for camera to follow
       const isoTileWidth = 64;
@@ -99,11 +182,49 @@ export class Token extends Entity {
       this.x = isoPos.screenX + offsetX - this.width / 2;
       this.y = isoPos.screenY + offsetY - this.height / 2;
     } else {
-      // 2D mode - use grid position
-      const tileSize = this.grid.size;
+      // 2D mode - calculate base position from grid coordinates
       this.x = this.col * tileSize;
       this.y = this.row * tileSize;
     }
+  }
+  
+  /**
+   * Rotate the token's visual position
+   * Grid coordinates stay the same, only x,y change
+   * @param {number} rotation - New rotation value (0, 90, 180, 270)
+   */
+  rotate(rotation) {
+    if (rotation === 0) {
+      // No rotation - use base grid position
+      const tileSize = this.grid.size;
+      this.x = this.col * tileSize;
+      this.y = this.row * tileSize;
+      return;
+    }
+    
+    // Calculate base position from grid coordinates
+    const tileSize = this.grid.size;
+    const baseX = this.col * tileSize;
+    const baseY = this.row * tileSize;
+    
+    // Rotation center (center of canvas)
+    const centerX = this.grid.width / 2;
+    const centerY = this.grid.height / 2;
+    
+    // Translate to origin
+    let x = baseX - centerX;
+    let y = baseY - centerY;
+    
+    // Apply rotation
+    const rad = Phaser.Math.DegToRad(rotation);
+    const cos = Math.cos(rad);
+    const sin = Math.sin(rad);
+    const rotatedX = x * cos - y * sin;
+    const rotatedY = x * sin + y * cos;
+    
+    // Translate back and store
+    this.x = rotatedX + centerX;
+    this.y = rotatedY + centerY;
   }
   
   /**
@@ -203,8 +324,8 @@ export class Token extends Entity {
    * Render token to Phaser graphics
    * @param {Phaser.GameObjects.Graphics} graphics - Phaser graphics object
    * @param {string} viewMode - Current view mode ('2D' or 'ISOMETRIC')
-   * @param {number} rotation - Map rotation in degrees (2D only, 0/90/180/270)
-   * @param {Grid} grid - Grid instance for rotation calculations
+   * @param {number} rotation - Map rotation (not used - x,y already rotated)
+   * @param {Grid} grid - Grid instance (not used)
    */
   render(graphics, viewMode = '2D', rotation = 0, grid = null) {
     // No debug outline for tokens (not needed)
@@ -212,32 +333,9 @@ export class Token extends Entity {
     // Convert hex color to Phaser number format
     const colorNumber = parseInt(this.color.replace('#', '0x'));
     
-    // Calculate center position based on view mode and rotation
-    let centerX, centerY;
-    
-    if (viewMode === 'ISOMETRIC') {
-      // Isometric mode - use x,y position (already calculated)
-      centerX = this.x + this.width / 2;
-      centerY = this.y + this.height / 2;
-    } else {
-      // 2D mode - apply rotation to position
-      if (rotation !== 0 && grid) {
-        // Apply rotation transformation
-        const rotated = rotatePixelPosition(
-          this.col * grid.size,
-          this.row * grid.size,
-          rotation,
-          grid.width,
-          grid.height
-        );
-        centerX = rotated.x + this.width / 2;
-        centerY = rotated.y + this.height / 2;
-      } else {
-        // No rotation - use standard position
-        centerX = this.x + this.width / 2;
-        centerY = this.y + this.height / 2;
-      }
-    }
+    // Use stored x,y position (already accounts for rotation if applied)
+    const centerX = this.x + this.width / 2;
+    const centerY = this.y + this.height / 2;
     
     // Draw token as filled circle
     const radius = this.width * 0.4; // 40% of tile size

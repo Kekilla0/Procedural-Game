@@ -8,6 +8,7 @@
  */
 
 import { Canvas } from './canvas.js';
+import { Token } from './token.js';
 import { Player } from './player.js';
 import { Enemy } from './enemy.js';
 import { Camera } from './camera.js';
@@ -31,40 +32,43 @@ export class Game extends Phaser.Scene {
   create() {
     logger.info('Game scene created');
     
-    // Create canvas background
-    this.canvas = new Canvas(800, 600);
-    
-    // Create graphics object for rendering
     this.graphics = this.add.graphics();
-    
-    // Get grid and tokens array references
+
+
+    //TODO : This should be created/decided once all rooms have been "generated", assuming only 800,600 here.
+    this.canvas = new Canvas(800, 600);
     const grid = this.canvas.layers.grid;
-    const tokens = this.canvas.layers.tokens;
-    const tileSize = grid.size;
     
-    // Create player at grid position (20, 20) - centered to avoid debug panel
-    const playerCol = 20;
-    const playerRow = 20;
+    // Spawn player in center area (15-25, 15-25) to avoid debug panel
+    this.player = Token.spawn(Player, this.canvas, {
+      x: 15,
+      y: 15,
+      w: 10,
+      h: 10,
+      name: 'Player'
+    });
     
-    this.player = new Player(
-      playerCol * tileSize,  // x
-      playerRow * tileSize,  // y
-      tileSize,              // width
-      tileSize,              // height
-      {
-        grid: grid,
-        tokens: tokens,  // Pass tokens array for collision detection
-        col: playerCol,
-        row: playerRow
-      }
-    );
+    if (!this.player) {
+      logger.error('Failed to spawn player!');
+      return;
+    }
     
-    // Add player to tokens layer
-    tokens.push(this.player);
+    // Spawn enemies in different areas
+    Token.spawn(Enemy, this.canvas, {
+      x: 0,
+      y: 0,
+      w: 10,
+      h: 10,
+      name: 'Goblin'
+    });
     
-    // Spawn 2 enemies at random positions
-    this.spawnEnemy(grid, tokens, tileSize, 'Goblin');
-    this.spawnEnemy(grid, tokens, tileSize, 'Orc');
+    Token.spawn(Enemy, this.canvas, {
+      x: grid.columns - 10,
+      y: grid.rows - 10,
+      w: 10,
+      h: 10,
+      name: 'Orc'
+    });
     
     // Create camera controller
     this.cameraController = new Camera(this.cameras.main, {
@@ -78,7 +82,7 @@ export class Game extends Phaser.Scene {
     
     // Set initial screen positions for all tokens
     const viewMode = this.cameraController.getViewMode();
-    for (const token of tokens) {
+    for (const token of this.canvas.layers.tokens) {
       token.updateScreenPosition(viewMode);
     }
     
@@ -96,65 +100,14 @@ export class Game extends Phaser.Scene {
       row: 0,
       playerCol: this.player.col,
       playerRow: this.player.row,
-      zoom: this.cameras.main.zoom
+      zoom: this.cameras.main.zoom,
+      rotation: this.rotation
     });
     
     // Initial render
     this.render();
     
     logger.debug('Initial render complete');
-  }
-  
-  /**
-   * Spawn an enemy at a random unoccupied position
-   * @param {Grid} grid - Grid instance
-   * @param {Array} tokens - Array of all tokens
-   * @param {number} tileSize - Size of each tile
-   * @param {string} name - Enemy name
-   */
-  spawnEnemy(grid, tokens, tileSize, name) {
-    let col, row;
-    let attempts = 0;
-    const maxAttempts = 100;
-    
-    // Find random unoccupied position
-    do {
-      col = Math.floor(Math.random() * grid.columns);
-      row = Math.floor(Math.random() * grid.rows);
-      attempts++;
-      
-      // Check if position is occupied
-      const occupied = tokens.some(token => token.col === col && token.row === row);
-      
-      if (!occupied) {
-        break;
-      }
-      
-      if (attempts >= maxAttempts) {
-        logger.error(`Failed to spawn ${name} after ${maxAttempts} attempts`);
-        return;
-      }
-    } while (true);
-    
-    // Create enemy at random position
-    const enemy = new Enemy(
-      col * tileSize,
-      row * tileSize,
-      tileSize,
-      tileSize,
-      {
-        grid: grid,
-        tokens: tokens,  // Pass tokens array for collision detection
-        col: col,
-        row: row,
-        name: name
-      }
-    );
-    
-    // Add enemy to tokens layer
-    tokens.push(enemy);
-    
-    logger.info(`Spawned ${name} at (${col}, ${row})`);
   }
   
   /**
@@ -174,8 +127,30 @@ export class Game extends Phaser.Scene {
       
       // Convert pointer to world coordinates (accounts for zoom and scroll)
       const worldPoint = this.cameras.main.getWorldPoint(pointer.x, pointer.y);
-      const worldX = worldPoint.x;
-      const worldY = worldPoint.y;
+      let worldX = worldPoint.x;
+      let worldY = worldPoint.y;
+      
+      // Apply inverse rotation in 2D mode
+      if (viewMode === '2D' && this.rotation !== 0) {
+        // Transform mouse coordinates back through inverse rotation
+        const centerX = this.canvas.width / 2;
+        const centerY = this.canvas.height / 2;
+        
+        // Translate to origin
+        worldX -= centerX;
+        worldY -= centerY;
+        
+        // Apply inverse rotation
+        const rad = -Phaser.Math.DegToRad(this.rotation); // Negative for inverse
+        const cos = Math.cos(rad);
+        const sin = Math.sin(rad);
+        const rotatedX = worldX * cos - worldY * sin;
+        const rotatedY = worldX * sin + worldY * cos;
+        
+        // Translate back
+        worldX = rotatedX + centerX;
+        worldY = rotatedY + centerY;
+      }
       
       let col, row;
       
@@ -206,11 +181,7 @@ export class Game extends Phaser.Scene {
       
       if (isInRange) {
         this.hoveredTile = { col, row };
-        logger.debug(`Setting hoveredTile to (${col}, ${row}) in ${viewMode} mode`);
       } else {
-        if (this.hoveredTile) {
-          logger.debug(`Clearing hoveredTile (was at ${this.hoveredTile.col}, ${this.hoveredTile.row})`);
-        }
         this.hoveredTile = null;
       }
       
@@ -221,7 +192,8 @@ export class Game extends Phaser.Scene {
         row: row,
         playerCol: this.player.col,
         playerRow: this.player.row,
-        zoom: this.cameras.main.zoom
+        zoom: this.cameras.main.zoom,
+        rotation: this.rotation
       });
       
       // Re-render to show hover highlight
@@ -284,6 +256,7 @@ export class Game extends Phaser.Scene {
       
       // Update all token screen positions for new view mode
       const viewMode = this.cameraController.getViewMode();
+      
       for (const token of this.canvas.layers.tokens) {
         token.updateScreenPosition(viewMode);
       }
@@ -304,6 +277,14 @@ export class Game extends Phaser.Scene {
         this.rotation = this.rotation % 360;
         
         logger.info(`Map rotated to ${this.rotation}°`);
+        
+        // Rotate all objects on canvas
+        this.canvas.rotate(this.rotation);
+        
+        // Update debug panel
+        updateDebugPanel({
+          rotation: this.rotation
+        });
         
         this.render();
       } else {
@@ -335,9 +316,14 @@ export class Game extends Phaser.Scene {
     if (moved) {
       logger.debug(`Player moved to grid (${this.player.col}, ${this.player.row})`);
       
-      // Update player screen position for camera following
+      // Update player screen position
       const viewMode = this.cameraController.getViewMode();
       this.player.updateScreenPosition(viewMode);
+      
+      // Re-apply rotation if active
+      if (viewMode === '2D' && this.rotation !== 0) {
+        this.canvas.rotate(this.rotation);
+      }
       
       // Update debug panel with new player position
       updateDebugPanel({
@@ -384,9 +370,14 @@ export class Game extends Phaser.Scene {
         break;
       }
       
-      // Update screen position for camera following
+      // Update screen position
       const viewMode = this.cameraController.getViewMode();
       this.player.updateScreenPosition(viewMode);
+      
+      // Re-apply rotation if active
+      if (viewMode === '2D' && this.rotation !== 0) {
+        this.canvas.rotate(this.rotation);
+      }
       
       // Update debug panel
       updateDebugPanel({
@@ -452,7 +443,6 @@ export class Game extends Phaser.Scene {
     // Mark the hovered tile if it exists (don't duplicate, just mark it)
     const highlights = movementRange.map(tile => {
       if (this.hoveredTile && tile.col === this.hoveredTile.col && tile.row === this.hoveredTile.row) {
-        logger.debug(`Marking tile (${tile.col}, ${tile.row}) as hovered in ${viewMode} mode`);
         return { ...tile, isHovered: true };
       }
       return tile;

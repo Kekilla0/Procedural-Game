@@ -9,7 +9,6 @@ import { Renderable } from './renderable.js';
 import { DATA } from '../data/constants.js';
 import { logger } from '../utils/logger.js';
 import { cartesianToIso } from '../utils/projection.js';
-import { rotatePixelPosition } from '../utils/rotation.js';
 
 export class Grid extends Renderable {
   /**
@@ -39,11 +38,24 @@ export class Grid extends Renderable {
     this.columns = Math.floor(canvasWidth / tileSize);
     this.rows = Math.floor(canvasHeight / tileSize);
     
+    // Current rotation (for rendering highlights)
+    this.rotation = 0;
+    
     logger.debug('Grid Initialized:', {
       columns: this.columns,
       rows: this.rows,
       tileSize: this.size
     });
+  }
+  
+  /**
+   * Rotate the grid (stores rotation for highlight rendering)
+   * Grid lines don't rotate, but highlights do
+   * @param {number} rotation - New rotation value (0, 90, 180, 270)
+   */
+  rotate(rotation) {
+    this.rotation = rotation;
+    logger.debug(`Grid rotation set to ${rotation}°`);
   }
   
   /**
@@ -74,35 +86,46 @@ export class Grid extends Renderable {
    * Render 2D grid (square tiles)
    * @param {Phaser.GameObjects.Graphics} graphics - Phaser graphics object
    * @param {Array} movementRange - Array of {col, row} tiles to highlight
-   * @param {number} rotation - Map rotation in degrees (0/90/180/270)
+   * @param {number} rotation - Map rotation (not used, uses this.rotation)
    */
   render2D(graphics, movementRange = [], rotation = 0) {
-    // First, render movement highlights (before grid lines)
-    // Note: Grid lines themselves don't rotate, but highlights do
+    // Helper function to calculate rotated position
+    const getRotatedPosition = (col, row) => {
+      let x = this.x + (col * this.size);
+      let y = this.y + (row * this.size);
+      
+      if (this.rotation !== 0) {
+        const centerX = this.width / 2;
+        const centerY = this.height / 2;
+        
+        x -= centerX;
+        y -= centerY;
+        
+        const rad = Phaser.Math.DegToRad(this.rotation);
+        const cos = Math.cos(rad);
+        const sin = Math.sin(rad);
+        const rotatedX = x * cos - y * sin;
+        const rotatedY = x * sin + y * cos;
+        
+        x = rotatedX + centerX;
+        y = rotatedY + centerY;
+      }
+      
+      return { x, y };
+    };
+    
+    // Render movement highlights
     if (movementRange.length > 0) {
       for (const tile of movementRange) {
-        // Apply rotation to tile position
-        const rotated = rotatePixelPosition(
-          tile.col * this.size,
-          tile.row * this.size,
-          rotation,
-          this.width,
-          this.height
-        );
-        
-        const x = this.x + rotated.x;
-        const y = this.y + rotated.y;
+        const pos = getRotatedPosition(tile.col, tile.row);
         
         if (tile.isHovered) {
-          // Hovered tile - use mouse hover color
-          logger.debug(`2D: Rendering HOVERED tile (${tile.col}, ${tile.row}) at rotated position (${x}, ${y})`);
           graphics.fillStyle(DATA.MOUSE.HOVER_COLOR, DATA.MOUSE.HOVER_OPACITY);
         } else {
-          // Regular movement range - use movement range color
           graphics.fillStyle(DATA.MOVEMENT.RANGE_COLOR, DATA.MOVEMENT.RANGE_OPACITY);
         }
         
-        graphics.fillRect(x, y, this.size, this.size);
+        graphics.fillRect(pos.x, pos.y, this.size, this.size);
       }
     }
     
@@ -157,7 +180,6 @@ export class Grid extends Renderable {
         if (highlightTile) {
           if (highlightTile.isHovered) {
             // Hovered tile - use mouse hover color
-            logger.debug(`ISO: Rendering HOVERED tile (${col}, ${row}) - Color: ${DATA.MOUSE.HOVER_COLOR.toString(16)}, Opacity: ${DATA.MOUSE.HOVER_OPACITY}`);
             graphics.fillStyle(DATA.MOUSE.HOVER_COLOR, DATA.MOUSE.HOVER_OPACITY);
           } else {
             // Regular movement range - use movement range color

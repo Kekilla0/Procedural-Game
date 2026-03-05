@@ -16,22 +16,28 @@ export class Canvas extends Renderable {
    * Create a new Canvas
    * @param {number} width - Canvas width in pixels
    * @param {number} height - Canvas height in pixels
+   * @param {object} options - Various options for data imported to constructor.
    */
-  constructor(width, height) {
+  constructor(width, height, options = {}) {
     // Canvas always starts at origin (0, 0)
     super(0, 0, width, height);
     
     // Background appearance
-    this.img = null; // Optional: image asset path
-    this.color = DATA.CANVAS.COLOR; // Default: medium light grey
+    this.img = options.img || null; 
+    this.color = options.color || DATA.CANVAS.COLOR; 
+
+    this.viewMode = '2D';
+    this.rotation = 0;
     
     // Layer data storage
     this.layers = {
-      grid: new Grid(width, height), // Initialize grid with canvas dimensions
-      walls: [],  // Walls layer (empty array)
-      tiles: [],  // Tiles layer (empty array)
-      tokens: []  // Tokens layer (empty array)
+      grid: null, 
+      walls: [],  
+      tiles: [],  
+      tokens: []  
     };
+
+    this.layers.grid = new Grid(width, height);
 
     logger.debug("Canvas Initialized.");
   }
@@ -43,11 +49,8 @@ export class Canvas extends Renderable {
    * @param {Array} movementRange - Optional array of tiles to highlight for movement
    * @param {number} rotation - Map rotation in degrees (2D only, 0/90/180/270)
    */
-  render(graphics, viewMode = '2D', movementRange = [], rotation = 0) {
-    // Store current view mode
-    this.viewMode = viewMode;
-    
-    if (viewMode === 'ISOMETRIC') {
+  render(graphics, movementRange = []) {    
+    if (this.viewMode === 'ISOMETRIC') {
       // In isometric mode: fill entire viewport with black first
       graphics.fillStyle(0x000000); // Black background
       graphics.fillRect(0, 0, 2000, 2000); // Fill large area (bigger than viewport)
@@ -74,26 +77,33 @@ export class Canvas extends Renderable {
       graphics.fillPath();
       
       // No border - just the diamond shape
-    } else {
-      // 2D mode: no debug outline, just draw rectangle
+      
+      // Render grid and tokens without rotation
+      if (this.layers.grid) {
+        this.layers.grid.render(graphics, viewMode, movementRange, 0);
+      }
+      this.renderTokens(graphics, viewMode, 0);
+    } 
+    if(viewMode === "2D") {
+      // 2D mode - draw background (rotation is handled by individual objects)
       const colorNumber = parseInt(this.color.replace('#', '0x'));
       graphics.fillStyle(colorNumber);
       graphics.fillRect(this.x, this.y, this.width, this.height);
+      
+      // Draw background image on top if it exists (image will overlay color)
+      if (this.img) {
+        // TODO: Draw image when image loading is implemented
+        logger.debug("Image rendering not yet implemented");
+      }
+      
+      // Render grid layer - rotation passed to each object
+      if (this.layers.grid) {
+        this.layers.grid.render(graphics, viewMode, movementRange, rotation);
+      }
+      
+      // Render tokens - rotation passed to each object
+      this.renderTokens(graphics, viewMode, rotation);
     }
-    
-    // Draw background image on top if it exists (image will overlay color)
-    if (this.img) {
-      // TODO: Draw image when image loading is implemented
-      logger.debug("Image rendering not yet implemented");
-    }
-    
-    // Render grid layer - pass viewMode, movement range, and rotation
-    if (this.layers.grid) {
-      this.layers.grid.render(graphics, viewMode, movementRange, rotation);
-    }
-    
-    // Render tokens layer - pass viewMode and rotation
-    this.renderTokens(graphics, viewMode, rotation);
   }
   
   /**
@@ -106,6 +116,40 @@ export class Canvas extends Renderable {
     for (const token of this.layers.tokens) {
       token.render(graphics, viewMode, rotation, this.layers.grid);
     }
+  }
+  
+  /**
+   * Rotate all objects on the canvas
+   * @param {number} rotation - New rotation value (0, 90, 180, 270)
+   */
+  rotate(rotation) {
+    logger.debug(`Canvas rotating to ${rotation}°`);
+
+    //rotate canvas
+    this.rotation = (this.rotation + rotation) % 360;
+    
+    
+    // Rotate grid
+    if (this.layers.grid) {
+      this.layers.grid.rotate(rotation);
+    }
+    
+    // Rotate all tokens
+    for (const token of this.layers.tokens) {
+      token.rotate(rotation);
+    }
+    
+    // TODO: Rotate walls when implemented
+    // for (const wall of this.layers.walls) {
+    //   wall.rotate(rotation);
+    // }
+    
+    // TODO: Rotate tiles when implemented
+    // for (const tile of this.layers.tiles) {
+    //   tile.rotate(rotation);
+    // }
+    
+    logger.debug(`Canvas rotation complete`);
   }
   
   /**

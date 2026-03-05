@@ -16,6 +16,7 @@ import { DATA } from '../data/constants.js';
  * @param {number} values.playerCol - Player grid column
  * @param {number} values.playerRow - Player grid row
  * @param {number} values.zoom - Camera zoom level
+ * @param {number} values.rotation - Map rotation in degrees
  */
 export function updateDebugPanel(values) {
   // Only update if debug mode is enabled
@@ -45,6 +46,14 @@ export function updateDebugPanel(values) {
     if (zoomElement) {
       const zoomPercent = Math.round(values.zoom * 100);
       zoomElement.textContent = `${zoomPercent}%`;
+    }
+  }
+  
+  // Update Rotation
+  if (values.rotation !== undefined) {
+    const rotationElement = document.getElementById('debug-rotation');
+    if (rotationElement) {
+      rotationElement.textContent = `${values.rotation}°`;
     }
   }
 }

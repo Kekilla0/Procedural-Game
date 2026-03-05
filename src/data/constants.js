@@ -92,7 +92,7 @@ const PLAYER = {
   COLOR: '#0000FF',  // Blue
   BASE_STATS: {
     strength: 0,
-    dexterity: 0,
+    dexterity: 100,
     intelligence: 0
   }
 };

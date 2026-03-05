@@ -28,9 +28,6 @@ window.logger = logger;
 
 // Expose dice and math utilities for testing
 window.roll = roll;
-window.rollSingle = rollSingle;
-window.rollAdvantage = rollAdvantage;
-window.rollDisadvantage = rollDisadvantage;
 window.calculate = calculate;
 
 // Expose scene access for stat updates
