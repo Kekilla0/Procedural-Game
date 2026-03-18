@@ -41,17 +41,21 @@ export class Entity extends Renderable {
     // Initialize Renderable with pixel position and size
     super(x, y, width, height);
     
-    // Store grid reference (required)
-    this.grid = options.grid;
-    
+    // Store grid reference (optional — null for inventory-only entities like Items/Containers)
+    this.grid = options.grid || null;
+
     // Calculate and store grid position from pixel position if not provided
     if (options.col !== undefined && options.row !== undefined) {
       this.col = options.col;
       this.row = options.row;
-    } else {
+    } else if (this.grid) {
       // Calculate from pixel position
       this.col = Math.floor(x / this.grid.size);
       this.row = Math.floor(y / this.grid.size);
+    } else {
+      // No grid (inventory-only entity) — no meaningful map position
+      this.col = 0;
+      this.row = 0;
     }
     
     // Collision property
@@ -69,7 +73,12 @@ export class Entity extends Renderable {
     this.movement = 0;
     this.initiative = 0;
     this.skill = 0;
-    
+
+    this.maxHealth   = undefined; // signals first calculateStats call
+    this.maxCapacity = undefined;
+    this.maxSkill    = undefined;
+    this.usedCapacity = 0;
+
     // Apply stat overrides if provided (allows things like walls with 0 STR but 400 HP)
     if (options.health !== undefined) this.health = options.health;
     if (options.capacity !== undefined) this.capacity = options.capacity;
@@ -88,13 +97,30 @@ export class Entity extends Renderable {
    * Subclasses can override individual calculation methods
    */
   calculateStats() {
-    // Only calculate if not overridden
-    if (this.health === 0) this.health = this.calculateHealth();
-    if (this.capacity === 0) this.capacity = this.calculateCapacity();
-    if (this.defense === 0) this.defense = this.calculateDefense();
-    if (this.movement === 0) this.movement = this.calculateMovement();
-    if (this.initiative === 0) this.initiative = this.calculateInitiative();
-    if (this.skill === 0) this.skill = this.calculateSkill();
+    const firstCall = this.maxHealth === undefined;
+
+    this.maxHealth   = this.calculateHealth();
+    this.maxCapacity = this.calculateCapacity();
+    this.defense     = this.calculateDefense();
+    this.movement    = this.calculateMovement();   // max movement per turn
+    this.initiative  = this.calculateInitiative();
+    this.maxSkill    = this.calculateSkill();
+
+    if (firstCall) {
+      this.health       = this.maxHealth;
+      this.usedCapacity = 0;
+      this.skill        = this.maxSkill;
+    } else {
+      // On recalculation (class change etc.) clamp current to new max
+      this.health = Math.min(this.health ?? this.maxHealth, this.maxHealth);
+      this.skill  = Math.min(this.skill  ?? this.maxSkill,  this.maxSkill);
+    }
+  }
+
+  /** Restore all pool values to their max. Call after changing base stats externally. */
+  fullResetStats() {
+    delete this.maxHealth; // force firstCall path
+    this.calculateStats();
   }
   
   /**

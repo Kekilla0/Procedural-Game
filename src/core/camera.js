@@ -26,15 +26,15 @@ export class Camera {
     this.canvasHeight = options.canvasHeight;
     this.grid = options.grid;
     
-    // View mode
-    this.viewMode = DATA.VIEW.MODE;
+    // Always isometric
+    this.viewMode = 'ISOMETRIC';
     
     // Zoom limits
     this.minZoom = 1.0;
     this.maxZoom = this.grid.rows / DATA.CAMERA.MIN_TILES_HEIGHT;
     
-    // Set initial camera bounds
-    this.camera.setBounds(0, 0, this.canvasWidth, this.canvasHeight);
+    // No bounds - camera follows freely in both 2D and ISO
+    this.camera.removeBounds();
     
     // Start at default zoom
     this.camera.setZoom(this.minZoom);
@@ -55,30 +55,6 @@ export class Camera {
     // Smooth following with lerp
     this.camera.startFollow(entity, true, 0.1, 0.1);
     logger.debug('Camera now following entity');
-  }
-  
-  /**
-   * Toggle between 2D and isometric view modes
-   * NOTE: Isometric is now handled by projection math in Canvas, not camera rotation
-   */
-  toggleViewMode() {
-    // Toggle mode
-    this.viewMode = this.viewMode === '2D' ? 'ISOMETRIC' : '2D';
-    
-    logger.info(`Camera view mode: ${this.viewMode}`);
-    
-    if (this.viewMode === 'ISOMETRIC') {
-      // Isometric view extends beyond the original canvas bounds
-      // Remove bounds so camera can follow player anywhere
-      this.camera.removeBounds();
-      
-      logger.debug('Isometric mode: Camera bounds removed for free movement');
-    } else {
-      // Restore 2D bounds
-      this.camera.setBounds(0, 0, this.canvasWidth, this.canvasHeight);
-      
-      logger.debug('2D mode: Camera bounds restored');
-    }
   }
   
   /**

@@ -33,6 +33,7 @@ window.calculate = calculate;
 // Expose scene access for stat updates
 game.events.on('ready', () => {
   window.gameScene = game.scene.getScene('Game');
+  window.world = window.gameScene.world;
 });
 
 logger.info('Phaser 3 game initialized');

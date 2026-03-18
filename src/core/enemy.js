@@ -33,7 +33,10 @@ export class Enemy extends Token {
       color: options.color || DATA.ENEMY.COLOR,
       stats: options.stats || DATA.ENEMY.BASE_STATS
     });
-    
+
+    // Monster type key (e.g. 'goblin') used for MONSTER_DEFS lookup and texture naming
+    this.monsterType = options.monsterType || null;
+
     logger.info('Enemy created:', {
       name: this.name,
       position: `(${this.col}, ${this.row})`,
@@ -48,16 +51,48 @@ export class Enemy extends Token {
   }
   
   /**
+   * Check if player is within `range` tiles of this enemy (Manhattan distance).
+   * @param {number} playerCol
+   * @param {number} playerRow
+   * @param {number} [range=1]
+   * @returns {boolean}
+   */
+  isWithin(playerCol, playerRow, range = 1) {
+    return Math.abs(playerCol - this.col) + Math.abs(playerRow - this.row) <= range;
+  }
+
+  /**
+   * Context menu items shown when the player right-clicks this enemy.
+   * @param {Token} player
+   * @returns {Array<{label: string, disabled?: boolean, action: Function}>}
+   */
+  getContextMenuItems(player) {
+    const inRange = this.isWithin(player.col, player.row, 1);
+    return [
+      {
+        label: 'Examine',
+        action: () => logger.info(`Examined ${this.name} at (${this.col}, ${this.row})`)
+      },
+      {
+        label: 'Attack',
+        disabled: !inRange,
+        action: () => this.kill()
+      }
+    ];
+  }
+
+  /**
+   * Mark this enemy as dead so game.js can remove it from the scene.
+   */
+  kill() {
+    this.alive = false;
+    logger.info(`${this.name} has been slain!`);
+  }
+
+  /**
    * AI: Take a turn (placeholder for future AI implementation)
-   * For now, enemies don't move automatically
    */
   takeTurn() {
-    // TODO: Implement AI behavior
-    // - Calculate path to player
-    // - Move towards player
-    // - Attack if in range
-    // - Use abilities
-    
     logger.debug(`${this.name} is thinking... (AI not implemented yet)`);
   }
 }

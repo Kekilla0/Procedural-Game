@@ -58,6 +58,8 @@ body {
    =========================== */
 
 #game {
+  position: relative;
+  overflow: hidden;
   border: 2px solid #00ff00;
   box-shadow: 0 0 20px rgba(0, 255, 0, 0.3);
 }
@@ -204,4 +206,339 @@ body {
   font-weight: bold;
   min-width: 40px;
   text-align: right;
+}
+
+/* ===========================
+   CONTEXT MENU
+   =========================== */
+
+#context-menu {
+  display: none;
+  position: fixed;
+  z-index: 1000;
+  background-color: #1a1a1a;
+  border: 1px solid #00ff00;
+  box-shadow: 0 0 10px rgba(0, 255, 0, 0.3);
+  padding: 4px 0;
+  min-width: 140px;
+  font-family: 'Courier New', monospace;
+}
+
+#context-menu.visible {
+  display: block;
+}
+
+#context-menu button {
+  display: block;
+  width: 100%;
+  padding: 8px 14px;
+  background: none;
+  border: none;
+  color: #cccccc;
+  font-family: 'Courier New', monospace;
+  font-size: 13px;
+  text-align: left;
+  cursor: pointer;
+}
+
+#context-menu button:hover:not(.disabled) {
+  background-color: #00ff00;
+  color: #000000;
+}
+
+#context-menu button.disabled {
+  color: #555555;
+  cursor: not-allowed;
+}
+/* ===========================
+   DIALOG MODAL
+   =========================== */
+
+#dialog-modal {
+  display: none;
+  position: absolute;
+  z-index: 2000;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  min-width: 260px;
+  max-width: 420px;
+  background-color: #1a1a1a;
+  border: 1px solid #00ff00;
+  box-shadow: 0 0 16px rgba(0, 255, 0, 0.35);
+  font-family: 'Courier New', monospace;
+  color: #cccccc;
+}
+
+#dialog-modal.visible {
+  display: block;
+}
+
+.dialog-close {
+  position: absolute;
+  top: 4px;
+  right: 6px;
+  background: none;
+  border: none;
+  color: #888;
+  font-size: 18px;
+  cursor: pointer;
+  line-height: 1;
+  padding: 0 4px;
+}
+
+.dialog-close:hover {
+  color: #00ff00;
+}
+
+.dialog-body {
+  padding: 16px 18px 12px;
+}
+
+.dialog-title {
+  font-size: 14px;
+  font-weight: bold;
+  color: #00ff00;
+  margin-bottom: 10px;
+  padding-right: 20px;
+}
+
+.dialog-message {
+  font-size: 13px;
+  color: #cccccc;
+  margin-bottom: 12px;
+  line-height: 1.5;
+}
+
+.dialog-items {
+  display: flex;
+  flex-direction: column;
+  max-height: 200px;
+  overflow-y: auto;
+  border: 1px solid #333;
+  margin-bottom: 10px;
+}
+
+.dialog-choices {
+  display: flex;
+  flex-direction: row;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 4px;
+}
+
+.dialog-items button,
+.dialog-choices button {
+  background: none;
+  border: none;
+  color: #cccccc;
+  font-family: 'Courier New', monospace;
+  font-size: 13px;
+  text-align: left;
+  cursor: pointer;
+  padding: 7px 12px;
+}
+
+.dialog-items button {
+  border-bottom: 1px solid #2a2a2a;
+  width: 100%;
+}
+
+.dialog-choices button {
+  border: 1px solid #444;
+  flex: 1;
+  text-align: center;
+}
+
+.dialog-items button:hover:not(.disabled),
+.dialog-choices button:hover:not(.disabled) {
+  background-color: #00ff00;
+  color: #000;
+}
+
+.dialog-items button.disabled,
+.dialog-choices button.disabled {
+  color: #555;
+  cursor: not-allowed;
+}
+
+/* ===========================
+   SPEECH BUBBLE
+   =========================== */
+
+#dialog-speech {
+  display: none;
+  position: absolute;
+  z-index: 1500;
+  max-width: 220px;
+  background-color: #1a1a1a;
+  border: 1px solid #aaaaaa;
+  box-shadow: 0 0 8px rgba(0, 0, 0, 0.6);
+  font-family: 'Courier New', monospace;
+  color: #cccccc;
+  padding: 8px 10px;
+}
+
+/* Arrow points down from bottom-center of bubble toward the monster's top-center */
+#dialog-speech::after {
+  content: '';
+  position: absolute;
+  bottom: -7px;
+  left: 50%;
+  transform: translateX(-50%);
+  border-width: 7px 6px 0;
+  border-style: solid;
+  border-color: #aaaaaa transparent transparent;
+}
+
+#dialog-speech.visible {
+  display: block;
+}
+
+.speech-message {
+  font-size: 12px;
+  margin-bottom: 6px;
+  line-height: 1.4;
+}
+
+.speech-choices {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.speech-choices button {
+  background: none;
+  border: 1px solid #444;
+  color: #cccccc;
+  font-family: 'Courier New', monospace;
+  font-size: 12px;
+  padding: 4px 8px;
+  cursor: pointer;
+  text-align: left;
+}
+
+.speech-choices button:hover {
+  background-color: #00ff00;
+  color: #000;
+}
+
+/* ===========================
+   INVENTORY DIALOG
+   =========================== */
+
+#inventory-modal {
+  display: none;
+  position: absolute;
+  z-index: 2100;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  min-width: 220px;
+  background-color: #1a1a1a;
+  border: 1px solid #886622;
+  box-shadow: 0 0 16px rgba(136, 102, 34, 0.5);
+  font-family: 'Courier New', monospace;
+  color: #cccccc;
+  padding: 10px 12px 12px;
+}
+
+#inventory-modal.visible {
+  display: block;
+}
+
+.inventory-title {
+  font-size: 13px;
+  font-weight: bold;
+  color: #ddaa44;
+  margin-bottom: 8px;
+  padding-right: 20px;
+}
+
+.inventory-subtitle {
+  font-size: 10px;
+  color: #888;
+  margin-bottom: 8px;
+}
+
+.inventory-grid {
+  display: grid;
+  gap: 4px;
+  margin-bottom: 10px;
+}
+
+.inventory-slot {
+  width: 44px;
+  height: 44px;
+  border: 1px solid #444;
+  background-color: #111;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 8px;
+  text-align: center;
+  color: #888;
+  padding: 2px;
+  word-break: break-word;
+  user-select: none;
+}
+
+.inventory-slot.filled {
+  border-color: #886622;
+  color: #ddaa44;
+  cursor: context-menu;
+}
+
+.inventory-slot.filled:hover {
+  border-color: #ffcc44;
+  background-color: #222;
+}
+
+.inventory-close-btn {
+  display: block;
+  width: 100%;
+  padding: 4px;
+  background: none;
+  border: 1px solid #555;
+  color: #aaa;
+  cursor: pointer;
+  font-family: 'Courier New', monospace;
+  font-size: 11px;
+}
+
+.inventory-close-btn:hover {
+  border-color: #886622;
+  color: #ddaa44;
+}
+
+/* Mini right-click menu for inventory items */
+#inventory-item-menu {
+  display: none;
+  position: fixed;
+  z-index: 3000;
+  background: #1a1a1a;
+  border: 1px solid #886622;
+  min-width: 80px;
+}
+
+#inventory-item-menu.visible {
+  display: block;
+}
+
+#inventory-item-menu button {
+  display: block;
+  width: 100%;
+  padding: 5px 10px;
+  background: none;
+  border: none;
+  color: #cccccc;
+  cursor: pointer;
+  text-align: left;
+  font-family: 'Courier New', monospace;
+  font-size: 11px;
+}
+
+#inventory-item-menu button:hover {
+  background-color: #886622;
+  color: #fff;
 }

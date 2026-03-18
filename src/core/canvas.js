@@ -9,7 +9,6 @@ import { Renderable } from './renderable.js';
 import { Grid } from './grid.js';
 import { DATA } from '../data/constants.js';
 import { logger } from '../utils/logger.js';
-import { rectToIsoDiamond } from '../utils/projection.js';
 
 export class Canvas extends Renderable {
   /**
@@ -26,18 +25,24 @@ export class Canvas extends Renderable {
     this.img = options.img || null; 
     this.color = options.color || DATA.CANVAS.COLOR; 
 
-    this.viewMode = '2D';
+    this.viewMode = 'ISOMETRIC';
     this.rotation = 0;
     
-    // Layer data storage
+    // Layer data storage — named for direct access (layers.tokens, etc.)
+    // Rendered in the order defined by layerOrder (index 0 = bottom, drawn first).
     this.layers = {
-      grid: null, 
-      walls: [],  
-      tiles: [],  
-      tokens: []  
+      tiles:      [],           // 0 — ground tiles
+      grid:       null,         // 1 — grid lines + highlights
+      walls:      [],           // 2 — walls and doors (depth-sorted per-wall in ISO)
+      tokens:     [],           // 3 — player and enemies
+      containers: []            // 4 — lootable containers (chests, barrels, etc.)
     };
+    this.layerOrder = ['tiles', 'grid', 'walls', 'tokens', 'containers'];
 
     this.layers.grid = new Grid(width, height);
+
+    // When true, game.js renders walls externally (per-wall Graphics for correct z-depth)
+    this.externalWallRenderer = false;
 
     logger.debug("Canvas Initialized.");
   }
@@ -49,109 +54,214 @@ export class Canvas extends Renderable {
    * @param {Array} movementRange - Optional array of tiles to highlight for movement
    * @param {number} rotation - Map rotation in degrees (2D only, 0/90/180/270)
    */
-  render(graphics, movementRange = []) {    
-    if (this.viewMode === 'ISOMETRIC') {
-      // In isometric mode: fill entire viewport with black first
-      graphics.fillStyle(0x000000); // Black background
-      graphics.fillRect(0, 0, 2000, 2000); // Fill large area (bigger than viewport)
-      
-      // Then draw the gray diamond on top
-      const colorNumber = parseInt(this.color.replace('#', '0x'));
-      graphics.fillStyle(colorNumber);
-      
-      // Use GRID dimensions, not pixel dimensions!
-      const grid = this.layers.grid;
-      const isoPoints = rectToIsoDiamond(0, 0, grid.columns, grid.rows, 64);
-      
-      // Center the isometric view in the viewport
-      const offsetX = 400;
-      const offsetY = 100;
-      
-      // Fill the diamond (gray)
-      graphics.beginPath();
-      graphics.moveTo(isoPoints[0].screenX + offsetX, isoPoints[0].screenY + offsetY);
-      graphics.lineTo(isoPoints[1].screenX + offsetX, isoPoints[1].screenY + offsetY);
-      graphics.lineTo(isoPoints[2].screenX + offsetX, isoPoints[2].screenY + offsetY);
-      graphics.lineTo(isoPoints[3].screenX + offsetX, isoPoints[3].screenY + offsetY);
-      graphics.closePath();
-      graphics.fillPath();
-      
-      // No border - just the diamond shape
-      
-      // Render grid and tokens without rotation
-      if (this.layers.grid) {
-        this.layers.grid.render(graphics, viewMode, movementRange, 0);
-      }
-      this.renderTokens(graphics, viewMode, 0);
-    } 
-    if(viewMode === "2D") {
-      // 2D mode - draw background (rotation is handled by individual objects)
-      const colorNumber = parseInt(this.color.replace('#', '0x'));
-      graphics.fillStyle(colorNumber);
-      graphics.fillRect(this.x, this.y, this.width, this.height);
-      
-      // Draw background image on top if it exists (image will overlay color)
-      if (this.img) {
-        // TODO: Draw image when image loading is implemented
-        logger.debug("Image rendering not yet implemented");
-      }
-      
-      // Render grid layer - rotation passed to each object
-      if (this.layers.grid) {
-        this.layers.grid.render(graphics, viewMode, movementRange, rotation);
-      }
-      
-      // Render tokens - rotation passed to each object
-      this.renderTokens(graphics, viewMode, rotation);
-    }
+  render(graphics, movementRange = []) {
+    this._renderBackground(graphics);
+    this._renderLayers(graphics, movementRange);
   }
-  
+
+  _renderBackground(graphics) {
+    const colorNumber = parseInt(this.color.replace('#', '0x'));
+    graphics.fillStyle(0x000000);
+    graphics.fillRect(0, 0, 2000, 2000);
+    graphics.fillStyle(colorNumber);
+    const grid = this.layers.grid;
+    const diamondCols = (this.rotation === 90 || this.rotation === 270) ? grid.rows : grid.columns;
+    const diamondRows = (this.rotation === 90 || this.rotation === 270) ? grid.columns : grid.rows;
+    const pts = Canvas.rectToIsoDiamond(0, 0, diamondCols, diamondRows, 64);
+    const offsetX = 400, offsetY = 100;
+    graphics.beginPath();
+    graphics.moveTo(pts[0].screenX + offsetX, pts[0].screenY + offsetY);
+    graphics.lineTo(pts[1].screenX + offsetX, pts[1].screenY + offsetY);
+    graphics.lineTo(pts[2].screenX + offsetX, pts[2].screenY + offsetY);
+    graphics.lineTo(pts[3].screenX + offsetX, pts[3].screenY + offsetY);
+    graphics.closePath();
+    graphics.fillPath();
+  }
+
+  _renderLayers(graphics, movementRange) {
+    const { rotation } = this;
+    const grid = this.layers.grid;
+
+    for (const layerName of this.layerOrder) {
+      const layer = this.layers[layerName];
+      if (!layer) continue;
+
+      if (layerName === 'grid') {
+        layer.render(graphics, movementRange, rotation);
+        continue;
+      }
+
+      // Walls and tokens are depth-sorted together in ISO
+      if (layerName === 'walls' || layerName === 'tokens') continue;
+
+      for (const item of layer) {
+        item.render(graphics, 'ISOMETRIC', rotation, grid);
+      }
+    }
+
+    this._renderDepthSorted(graphics, rotation);
+  }
+
   /**
-   * Render all tokens in the tokens layer
-   * @param {Phaser.GameObjects.Graphics} graphics - Phaser graphics object to draw to
-   * @param {string} viewMode - Current view mode ('2D' or 'ISOMETRIC')
-   * @param {number} rotation - Map rotation in degrees (2D only, 0/90/180/270)
+   * Depth-sort walls and tokens together back-to-front (painter's algorithm).
+   * Only used in ISOMETRIC mode.
    */
-  renderTokens(graphics, viewMode = '2D', rotation = 0) {
+  _renderDepthSorted(graphics, rotation) {
+    const grid = this.layers.grid;
+    const maxCol = grid.columns - 1;
+    const maxRow = grid.rows - 1;
+
+    const renderables = [];
+
+    if (!this.externalWallRenderer) {
+      for (const wall of this.layers.walls) {
+        const r1 = Canvas.rotateCoordinates(wall.col, wall.row, rotation, maxCol, maxRow);
+        const r2col = wall.side === 'north' ? wall.col            : Math.max(0, wall.col - 1);
+        const r2row = wall.side === 'north' ? Math.max(0, wall.row - 1) : wall.row;
+        const r2 = Canvas.rotateCoordinates(r2col, r2row, rotation, maxCol, maxRow);
+        renderables.push({ obj: wall, depth: Math.max(r1.col + r1.row, r2.col + r2.row) });
+      }
+    }
+
     for (const token of this.layers.tokens) {
-      token.render(graphics, viewMode, rotation, this.layers.grid);
+      const r = Canvas.rotateCoordinates(token.col, token.row, rotation, maxCol, maxRow);
+      renderables.push({ obj: token, depth: r.col + r.row + 0.5 });
+    }
+
+    renderables.sort((a, b) => a.depth - b.depth);
+
+    for (const { obj } of renderables) {
+      obj.render(graphics, 'ISOMETRIC', rotation, grid);
     }
   }
-  
+
   /**
    * Rotate all objects on the canvas
    * @param {number} rotation - New rotation value (0, 90, 180, 270)
    */
   rotate(rotation) {
-    logger.debug(`Canvas rotating to ${rotation}°`);
+    this.rotation = rotation % 360;
 
-    //rotate canvas
-    this.rotation = (this.rotation + rotation) % 360;
-    
-    
-    // Rotate grid
-    if (this.layers.grid) {
-      this.layers.grid.rotate(rotation);
+    for (const layerName of this.layerOrder) {
+      const layer = this.layers[layerName];
+      if (!layer) continue;
+      const items = Array.isArray(layer) ? layer : [layer];
+      for (const item of items) {
+        if (item.rotate) item.rotate(this.rotation, this.viewMode);
+      }
     }
-    
-    // Rotate all tokens
-    for (const token of this.layers.tokens) {
-      token.rotate(rotation);
-    }
-    
-    // TODO: Rotate walls when implemented
-    // for (const wall of this.layers.walls) {
-    //   wall.rotate(rotation);
-    // }
-    
-    // TODO: Rotate tiles when implemented
-    // for (const tile of this.layers.tiles) {
-    //   tile.rotate(rotation);
-    // }
-    
-    logger.debug(`Canvas rotation complete`);
   }
   
+  /**
+   * Return the painter's-algorithm sort depth for a wall at a given rotation.
+   * Matches the formula used in renderSorted().
+   * @param {Wall} wall
+   * @param {number} rotation - Current map rotation (0/90/180/270)
+   * @returns {number}
+   */
+  getWallSortDepth(wall, rotation) {
+    const grid   = this.layers.grid;
+    const maxCol = grid.columns - 1;
+    const maxRow = grid.rows - 1;
+    const r1    = Canvas.rotateCoordinates(wall.col, wall.row, rotation, maxCol, maxRow);
+    const r2col = wall.side === 'north' ? wall.col            : Math.max(0, wall.col - 1);
+    const r2row = wall.side === 'north' ? Math.max(0, wall.row - 1) : wall.row;
+    const r2    = Canvas.rotateCoordinates(r2col, r2row, rotation, maxCol, maxRow);
+    return Math.max(r1.col + r1.row, r2.col + r2.row);
+  }
+
+  /**
+   * Find the interactable wall/door closest to a world point.
+   * In 2D mode uses pixel proximity; in ISOMETRIC mode converts to grid space first.
+   * @param {number} worldX - World x (pixels in 2D, ISO rendering space in ISO mode)
+   * @param {number} worldY - World y
+   * @param {string} [viewMode='2D'] - Current view mode
+   * @param {number} [rotation=0] - Current map rotation
+   * @param {number} [threshold=6] - Max distance (pixels in 2D, tile units * 100 in ISO)
+   * @returns {Interactable|null}
+   */
+  getInteractableAt(worldX, worldY, rotation = 0) {
+    const isoTileWidth = 64;
+    const offsetX = 400;
+    const offsetY = 100;
+    const { x: visGridX, y: visGridY } = Canvas.isoToCartesian(
+      worldX - offsetX,
+      worldY - offsetY,
+      isoTileWidth
+    );
+    const grid = this.layers.grid;
+    const maxCol = grid.columns - 1;
+    const maxRow = grid.rows - 1;
+    const clickCol = Math.floor(visGridX);
+    const clickRow = Math.floor(visGridY);
+
+    // Tokens take priority
+    for (const token of this.layers.tokens) {
+      if (!token.getContextMenuItems) continue;
+      const rt = Canvas.rotateCoordinates(token.col, token.row, rotation, maxCol, maxRow);
+      if (rt.col === clickCol && rt.row === clickRow) return token;
+    }
+
+    // Containers (chests)
+    for (const container of this.layers.containers) {
+      const rt = Canvas.rotateCoordinates(container.col, container.row, rotation, maxCol, maxRow);
+      if (rt.col === clickCol && rt.row === clickRow) return container;
+    }
+
+    // Walls/doors
+    let best = null;
+    let bestDepth = -Infinity;
+    for (const wall of this.layers.walls) {
+      if (wall.isNearGridEdge && wall.isNearGridEdge(visGridX, visGridY, rotation)) {
+        const r1 = Canvas.rotateCoordinates(wall.col, wall.row, rotation, maxCol, maxRow);
+        const r2col = wall.side === 'north' ? wall.col            : Math.max(0, wall.col - 1);
+        const r2row = wall.side === 'north' ? Math.max(0, wall.row - 1) : wall.row;
+        const r2 = Canvas.rotateCoordinates(r2col, r2row, rotation, maxCol, maxRow);
+        const depth = Math.max(r1.col + r1.row, r2.col + r2.row);
+        if (depth > bestDepth) { bestDepth = depth; best = wall; }
+      }
+    }
+    return best;
+  }
+
+  /**
+   * Check whether a token can move to the given grid cell.
+   * Checks bounds, solid walls on the crossed edge, and token occupancy.
+   * @param {Token} token - The token attempting to move
+   * @param {number} targetCol - Target column
+   * @param {number} targetRow - Target row
+   * @returns {boolean} True if movement is allowed
+   */
+  canMoveTo(token, targetCol, targetRow) {
+    const grid = this.layers.grid;
+
+    // Bounds check
+    if (targetCol < 0 || targetCol >= grid.columns || targetRow < 0 || targetRow >= grid.rows) {
+      return false;
+    }
+
+    // Wall check — only the edge being crossed, based on delta
+    const dCol = targetCol - token.col;
+    const dRow = targetRow - token.row;
+    for (const wall of this.layers.walls) {
+      if (wall.passable) continue;
+      let blocked = false;
+      if      (dRow === -1) blocked = wall.side === 'north' && wall.col === token.col   && wall.row === token.row;
+      else if (dRow ===  1) blocked = wall.side === 'north' && wall.col === token.col   && wall.row === targetRow;
+      else if (dCol === -1) blocked = wall.side === 'west'  && wall.col === token.col   && wall.row === token.row;
+      else if (dCol ===  1) blocked = wall.side === 'west'  && wall.col === targetCol   && wall.row === token.row;
+      if (blocked) return false;
+    }
+
+    // Token occupancy check
+    for (const other of this.layers.tokens) {
+      if (other === token) continue;
+      if (other.col === targetCol && other.row === targetRow) return false;
+    }
+
+    return true;
+  }
+
   /**
    * Get the background (image or color)
    * @returns {string|null} Background image path or color

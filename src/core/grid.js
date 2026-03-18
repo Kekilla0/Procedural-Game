@@ -8,7 +8,7 @@
 import { Renderable } from './renderable.js';
 import { DATA } from '../data/constants.js';
 import { logger } from '../utils/logger.js';
-import { cartesianToIso } from '../utils/projection.js';
+
 
 export class Grid extends Renderable {
   /**
@@ -64,114 +64,42 @@ export class Grid extends Renderable {
    * @param {string} viewMode - Current view mode ('2D' or 'ISOMETRIC')
    * @param {Array} movementRange - Optional array of {col, row} tiles to highlight
    */
-  render(graphics, viewMode = '2D', movementRange = [], rotation = 0) {
-    // No debug outline for grid (not needed)
-    
-    // Convert hex color string to Phaser number format
+  render(graphics, movementRange = [], rotation = 0) {
     const colorNumber = parseInt(this.color.replace('#', '0x'));
-    
-    // Set line style
     graphics.lineStyle(this.lineWidth, colorNumber);
-    
-    if (viewMode === 'ISOMETRIC') {
-      // Isometric mode ignores rotation
-      this.renderIsometric(graphics, colorNumber, movementRange);
-    } else {
-      // 2D mode supports rotation
-      this.render2D(graphics, movementRange, rotation);
-    }
+    this.renderIsometric(graphics, colorNumber, movementRange, rotation);
   }
-  
-  /**
-   * Render 2D grid (square tiles)
-   * @param {Phaser.GameObjects.Graphics} graphics - Phaser graphics object
-   * @param {Array} movementRange - Array of {col, row} tiles to highlight
-   * @param {number} rotation - Map rotation (not used, uses this.rotation)
-   */
-  render2D(graphics, movementRange = [], rotation = 0) {
-    // Helper function to calculate rotated position
-    const getRotatedPosition = (col, row) => {
-      let x = this.x + (col * this.size);
-      let y = this.y + (row * this.size);
-      
-      if (this.rotation !== 0) {
-        const centerX = this.width / 2;
-        const centerY = this.height / 2;
-        
-        x -= centerX;
-        y -= centerY;
-        
-        const rad = Phaser.Math.DegToRad(this.rotation);
-        const cos = Math.cos(rad);
-        const sin = Math.sin(rad);
-        const rotatedX = x * cos - y * sin;
-        const rotatedY = x * sin + y * cos;
-        
-        x = rotatedX + centerX;
-        y = rotatedY + centerY;
-      }
-      
-      return { x, y };
-    };
-    
-    // Render movement highlights
-    if (movementRange.length > 0) {
-      for (const tile of movementRange) {
-        const pos = getRotatedPosition(tile.col, tile.row);
-        
-        if (tile.isHovered) {
-          graphics.fillStyle(DATA.MOUSE.HOVER_COLOR, DATA.MOUSE.HOVER_OPACITY);
-        } else {
-          graphics.fillStyle(DATA.MOVEMENT.RANGE_COLOR, DATA.MOVEMENT.RANGE_OPACITY);
-        }
-        
-        graphics.fillRect(pos.x, pos.y, this.size, this.size);
-      }
-    }
-    
-    // Then draw grid lines on top
-    // Draw vertical lines
-    for (let col = 0; col <= this.columns; col++) {
-      const x = this.x + (col * this.size);
-      graphics.beginPath();
-      graphics.moveTo(x, this.y);
-      graphics.lineTo(x, this.y + this.height);
-      graphics.strokePath();
-    }
-    
-    // Draw horizontal lines
-    for (let row = 0; row <= this.rows; row++) {
-      const y = this.y + (row * this.size);
-      graphics.beginPath();
-      graphics.moveTo(this.x, y);
-      graphics.lineTo(this.x + this.width, y);
-      graphics.strokePath();
-    }
-  }
-  
+
   /**
    * Render isometric grid (diamond tiles)
    * @param {Phaser.GameObjects.Graphics} graphics - Phaser graphics object
    * @param {number} colorNumber - Line color in Phaser format
    * @param {Array} movementRange - Array of {col, row} tiles to highlight
    */
-  renderIsometric(graphics, colorNumber, movementRange = []) {
+  renderIsometric(graphics, colorNumber, movementRange = [], rotation = 0) {
     // Use tile size of 64 for isometric projection
     const isoTileWidth = 64;
-    
+
     // Center the isometric grid in the viewport
     const offsetX = 400;
     const offsetY = 100;
-    
+
     // Draw each tile as a diamond
     for (let row = 0; row < this.rows; row++) {
       for (let col = 0; col < this.columns; col++) {
-        // Use GRID coordinates (col, row), not pixel coordinates
-        // cartesianToIso will handle the conversion to screen space
-        const topLeft = cartesianToIso(col, row, isoTileWidth);
-        const topRight = cartesianToIso(col + 1, row, isoTileWidth);
-        const bottomRight = cartesianToIso(col + 1, row + 1, isoTileWidth);
-        const bottomLeft = cartesianToIso(col, row + 1, isoTileWidth);
+        // Apply rotation to grid coordinates before projecting to screen space
+        let visCol = col;
+        let visRow = row;
+        if (rotation !== 0) {
+          const rotated = Grid.rotateCoordinates(col, row, rotation, this.columns - 1, this.rows - 1);
+          visCol = rotated.col;
+          visRow = rotated.row;
+        }
+
+        const topLeft = Grid.cartesianToIso(visCol, visRow, isoTileWidth);
+        const topRight = Grid.cartesianToIso(visCol + 1, visRow, isoTileWidth);
+        const bottomRight = Grid.cartesianToIso(visCol + 1, visRow + 1, isoTileWidth);
+        const bottomLeft = Grid.cartesianToIso(visCol, visRow + 1, isoTileWidth);
         
         // Check if this tile should be highlighted
         const highlightTile = movementRange.find(t => t.col === col && t.row === row);

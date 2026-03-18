@@ -91,27 +91,29 @@ export class Player extends Token {
    * Update the stats panel in the UI with current player stats
    */
   updateStatsPanel() {
-    // Check if stats panel exists in DOM
     if (!document.getElementById('stat-strength')) {
       logger.debug('Stats panel not found in DOM');
       return;
     }
-    
-    // Base stats
-    document.getElementById('stat-strength').textContent = this.strength;
-    document.getElementById('stat-dexterity').textContent = this.dexterity;
+
+    // Base stats (flat values)
+    document.getElementById('stat-strength').textContent     = this.strength;
+    document.getElementById('stat-dexterity').textContent    = this.dexterity;
     document.getElementById('stat-intelligence').textContent = this.intelligence;
-    
-    // Combat stats
-    document.getElementById('stat-health').textContent = this.health;
-    document.getElementById('stat-defense').textContent = this.defense;
+
+    // Pool stats — show current / max
+    const maxHP  = this.maxHealth   ?? this.health;
+    const maxMOV = this.movement    ?? 0;
+    const maxCAP = this.maxCapacity ?? 0;
+    const maxSKL = this.maxSkill    ?? this.skill;
+
+    document.getElementById('stat-health').textContent     = `${this.health}/${maxHP}`;
+    document.getElementById('stat-defense').textContent    = this.defense;
     document.getElementById('stat-initiative').textContent = this.initiative;
-    
-    // Other stats
-    document.getElementById('stat-capacity').textContent = this.capacity;
-    document.getElementById('stat-movement').textContent = this.movement;
-    document.getElementById('stat-skill').textContent = this.skill;
-    
+    document.getElementById('stat-capacity').textContent   = `${this.usedCapacity ?? 0}/${maxCAP}`;
+    document.getElementById('stat-movement').textContent   = `${this.movementRemaining ?? maxMOV}/${maxMOV}`;
+    document.getElementById('stat-skill').textContent      = `${this.skill}/${maxSKL}`;
+
     logger.debug('Stats panel updated');
   }
 }

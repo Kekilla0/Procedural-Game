@@ -23,10 +23,8 @@ const DEBUG = true;
  * View mode settings
  */
 const VIEW = {
-  MODE: '2D',              // Default view mode ('2D' or 'ISOMETRIC')
-  TOGGLE_KEY: 'x',         // Key to toggle view mode (lowercase for comparison)
-  ISO_ROTATION: 45,        // Rotation angle for isometric view (degrees)
-  ROTATION_KEY: 'e',       // Key to rotate 2D map (lowercase for comparison)
+  ROTATION_KEY: 'e',       // Key to rotate clockwise (lowercase for comparison)
+  ROTATION_KEY_CCW: 'q',   // Key to rotate counter-clockwise (lowercase for comparison)
   ROTATION_INCREMENT: 90   // Degrees to rotate per key press (90 = quarter turn)
 };
 
@@ -63,7 +61,7 @@ const GRID = {
  */
 const CAMERA = {
   MIN_TILES_HEIGHT: 10,  // Minimum number of tiles visible in height when fully zoomed in
-  ZOOM_SPEED: 0.1,       // Zoom increment per mouse wheel tick
+  ZOOM_SPEED: 0.15,      // Zoom increment per mouse wheel tick
   ZOOM_SMOOTH_DURATION: 200  // Duration of zoom animation in milliseconds
 };
 
@@ -91,10 +89,32 @@ const PLAYER = {
   NAME: 'Player',
   COLOR: '#0000FF',  // Blue
   BASE_STATS: {
-    strength: 0,
-    dexterity: 100,
-    intelligence: 0
+    strength: 10,
+    dexterity: 10,
+    intelligence: 10
   }
+};
+
+/**
+ * Wall defaults
+ */
+const WALL = {
+  COLOR: '#4d4d4d',       // Gray
+  HEIGHT: 1.5,            // Wall height in tile units (ISO only). Screen px = HEIGHT * isoTileWidth/2
+  FADE_DISTANCE: 4,       // Tiles radius within which walls in front of the player become transparent
+  STATES: {
+    SOLID:     0,  // visible, impassable (normal wall)
+    INVISIBLE: 1,  // invisible to player, impassable (force field / barrier)
+    HIDDEN:    2,  // visible (looks solid), passable (secret passage)
+    OPEN:      3   // invisible, passable (open doorway)
+  }
+};
+
+/**
+ * Door defaults
+ */
+const DOOR = {
+  COLOR: '#5a2d0a'  // Brown
 };
 
 /**
@@ -110,6 +130,12 @@ const ENEMY = {
   }
 };
 
+const CHARACTER_CLASSES = {
+  warrior:  { strength: 15, dexterity: 10, intelligence: 5 },
+  rogue:    { strength: 10, dexterity: 15, intelligence: 5 },
+  sorcerer: { strength: 5,  dexterity: 10, intelligence: 15 }
+};
+
 // ====================
 // STATS CALCULATIONS
 // ====================
@@ -122,19 +148,19 @@ const ENEMY = {
  */
 const STATS = {
   // Health calculation
-  HEALTH_CALCULATION: "(1 + @strength) * 5 + @bonuses",
+  HEALTH_CALCULATION: "(@strength) * 5 + @bonuses",
   
   // Capacity calculation
-  CAPACITY_CALCULATION: "10 + (@strength / 2) + @bonuses",
+  CAPACITY_CALCULATION: "10 + (@strength - 10 / 2) + @bonuses",
   
   // Defense calculation
-  DEFENSE_CALCULATION: "@dexterity + 5 + @bonuses",
+  DEFENSE_CALCULATION: "@dexterity - 10 + 5 + @bonuses",
   
   // Movement calculation
-  MOVEMENT_CALCULATION: "2 + (@dexterity / 3) + @bonuses",
+  MOVEMENT_CALCULATION: "(@dexterity / 5) + @bonuses",
   
   // Initiative calculation
-  INITIATIVE_CALCULATION: "@intelligence + @bonuses",
+  INITIATIVE_CALCULATION: "@intelligence / 2 + @bonuses",
   
   // Skill calculation
   SKILL_CALCULATION: "@intelligence + @bonuses"
@@ -153,6 +179,9 @@ export const DATA = {
   MOVEMENT,
   MOUSE,
   PLAYER,
+  WALL,
+  DOOR,
   ENEMY,
+  CHARACTER_CLASSES,
   STATS
 };

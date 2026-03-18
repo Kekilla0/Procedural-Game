@@ -9,8 +9,9 @@
  */
 
 import { Entity } from './entity.js';
+import { Container } from './container.js';
 import { logger } from '../utils/logger.js';
-import { cartesianToIso } from '../utils/projection.js';
+
 import { DATA } from '../data/constants.js';
 
 export class Token extends Entity {
@@ -22,7 +23,7 @@ export class Token extends Entity {
    * @param {number} height - Height in pixels
    * @param {Object} options - Token configuration
    * @param {Grid} options.grid - Grid instance (required)
-   * @param {Array} [options.tokens] - Reference to tokens array for collision detection
+   * @param {Canvas} [options.canvas] - Canvas instance for collision detection
    * @param {number} [options.col] - Grid column position
    * @param {number} [options.row] - Grid row position
    * @param {string} [options.name] - Token name
@@ -46,15 +47,22 @@ export class Token extends Entity {
     this.name = options.name || 'Token';
     this.color = options.color || '#FFFFFF';
     this.img = options.img || null;
-    
-    // Reference to all tokens for collision detection
-    this.tokens = options.tokens || null;
+    this.direction = 'south'; // last movement direction: 'north'|'south'|'east'|'west'
+    this.useSprite = false;   // when true, Token.render() is skipped (sprite handles it)
+
+    // Canvas reference for collision detection (walls, tokens, bounds)
+    this.canvas = options.canvas || null;
     
     // Calculate stats after initialization (only calculates non-overridden stats)
     this.calculateStats();
-    
+
     // Movement tracking for turns - MUST come after calculateStats()
     this.movementRemaining = this.movement;
+
+    // Personal inventory — capacity derived from maxCapacity stat
+    this.container = new Container(0, 0, 0, 0, {
+      capacity: Math.max(1, Math.round(this.maxCapacity ?? 4))
+    });
     
     logger.debug('Token created:', {
       name: this.name,
@@ -82,65 +90,66 @@ export class Token extends Entity {
     const tokens = canvas.layers.tokens;
     const tileSize = grid.size;
     
-    const { x = 0, y = 0, w = grid.columns, h = grid.rows, name = 'Token' } = options;
-    
+    // Extract spawn-area params; all remaining options are forwarded to the token constructor
+    const { x = 0, y = 0, w = grid.columns, h = grid.rows, ...tokenOptions } = options;
+
     let col, row;
     let attempts = 0;
     const maxAttempts = 100;
-    
+
     // Find random unoccupied position within bounds
     do {
       col = x + Math.floor(Math.random() * w);
       row = y + Math.floor(Math.random() * h);
       attempts++;
-      
+
       // Ensure within grid bounds
       if (col < 0 || col >= grid.columns || row < 0 || row >= grid.rows) {
         continue;
       }
-      
+
       // Check if position is occupied by another token
       const occupied = tokens.some(token => token.col === col && token.row === row);
-      
+
       // TODO: Check if position is on impassable tile
-      // const impassableTile = canvas.layers.tiles.some(tile => 
+      // const impassableTile = canvas.layers.tiles.some(tile =>
       //   tile.col === col && tile.row === row && !tile.passable
       // );
-      
+
       // TODO: Check if position is on wall
-      // const wall = canvas.layers.walls.some(wall => 
+      // const wall = canvas.layers.walls.some(wall =>
       //   wall.col === col && wall.row === row && !wall.passable
       // );
-      
+
       if (!occupied) {
         break;
       }
-      
+
       if (attempts >= maxAttempts) {
-        logger.error(`Failed to spawn ${name} after ${maxAttempts} attempts in area (${x}, ${y}, ${w}, ${h})`);
+        logger.error(`Failed to spawn ${tokenOptions.name || 'Token'} after ${maxAttempts} attempts in area (${x}, ${y}, ${w}, ${h})`);
         return null;
       }
     } while (true);
-    
-    // Create token at random position
+
+    // Create token — spread all caller options, then override with computed position values
     const token = new TokenClass(
       col * tileSize,
       row * tileSize,
       tileSize,
       tileSize,
       {
-        grid: grid,
-        tokens: tokens,
-        col: col,
-        row: row,
-        name: name
+        ...tokenOptions,  // img, color, stats, name, monsterType, etc.
+        grid,
+        canvas,
+        col,
+        row
       }
     );
-    
+
     // Add token to tokens layer
     tokens.push(token);
-    
-    logger.info(`Spawned ${name} at (${col}, ${row})`);
+
+    logger.info(`Spawned ${token.name} at (${col}, ${row})`);
     
     return token;
   }
@@ -164,69 +173,40 @@ export class Token extends Entity {
    * Grid coordinates (col, row) are the source of truth - never mutated
    * @param {string} viewMode - Current view mode ('2D' or 'ISOMETRIC')
    */
-  updateScreenPosition(viewMode = '2D') {
-    const tileSize = this.grid.size;
-    
-    if (viewMode === 'ISOMETRIC') {
-      // Calculate isometric screen position for camera to follow
-      const isoTileWidth = 64;
-      const offsetX = 400;
-      const offsetY = 100;
-      
-      const tileCenterCol = this.col + 0.5;
-      const tileCenterRow = this.row + 0.5;
-      
-      const isoPos = cartesianToIso(tileCenterCol, tileCenterRow, isoTileWidth);
-      
-      // Update x,y to match visual position for camera following
-      this.x = isoPos.screenX + offsetX - this.width / 2;
-      this.y = isoPos.screenY + offsetY - this.height / 2;
-    } else {
-      // 2D mode - calculate base position from grid coordinates
-      this.x = this.col * tileSize;
-      this.y = this.row * tileSize;
+  updateScreenPosition() {
+    const rotation = this.grid.rotation || 0;
+    const isoTileWidth = 64;
+    const offsetX = 400;
+    const offsetY = 100;
+
+    let col = this.col;
+    let row = this.row;
+    if (rotation !== 0) {
+      const rotated = Token.rotateCoordinates(col, row, rotation, this.grid.columns - 1, this.grid.rows - 1);
+      col = rotated.col;
+      row = rotated.row;
     }
+
+    const isoPos = Token.cartesianToIso(col + 0.5, row + 0.5, isoTileWidth);
+    this.x = isoPos.screenX + offsetX - this.width / 2;
+    this.y = isoPos.screenY + offsetY - this.height / 2;
+  }
+
+  rotate() {
+    this.updateScreenPosition();
   }
   
   /**
-   * Rotate the token's visual position
-   * Grid coordinates stay the same, only x,y change
-   * @param {number} rotation - New rotation value (0, 90, 180, 270)
+   * Override calculateStats to keep the personal container capacity in sync with maxCapacity.
+   * Called from the constructor (before container exists) and on stat changes (after).
    */
-  rotate(rotation) {
-    if (rotation === 0) {
-      // No rotation - use base grid position
-      const tileSize = this.grid.size;
-      this.x = this.col * tileSize;
-      this.y = this.row * tileSize;
-      return;
+  calculateStats() {
+    super.calculateStats();
+    if (this.container) {
+      this.container.capacity = Math.max(1, Math.round(this.maxCapacity ?? 4));
     }
-    
-    // Calculate base position from grid coordinates
-    const tileSize = this.grid.size;
-    const baseX = this.col * tileSize;
-    const baseY = this.row * tileSize;
-    
-    // Rotation center (center of canvas)
-    const centerX = this.grid.width / 2;
-    const centerY = this.grid.height / 2;
-    
-    // Translate to origin
-    let x = baseX - centerX;
-    let y = baseY - centerY;
-    
-    // Apply rotation
-    const rad = Phaser.Math.DegToRad(rotation);
-    const cos = Math.cos(rad);
-    const sin = Math.sin(rad);
-    const rotatedX = x * cos - y * sin;
-    const rotatedY = x * sin + y * cos;
-    
-    // Translate back and store
-    this.x = rotatedX + centerX;
-    this.y = rotatedY + centerY;
   }
-  
+
   /**
    * Start a new turn - reset movement
    */
@@ -269,38 +249,23 @@ export class Token extends Entity {
         logger.error('Invalid direction:', direction);
         return false;
     }
-    
-    // Check collision with map boundaries
-    if (targetCol < 0 || targetCol >= this.grid.columns || 
-        targetRow < 0 || targetRow >= this.grid.rows) {
-      logger.debug('Movement blocked: out of bounds');
-      return false;
-    }
-    
-    // TODO: Check collision with walls
-    // - Loop through canvas.layers.walls
-    // - Check if any wall is at (targetCol, targetRow)
-    // - If wall.passable === false, return false
-    
-    // TODO: Check collision with tiles
-    // - Loop through canvas.layers.tiles
-    // - Check if any tile is at (targetCol, targetRow)
-    // - If tile.passable === false, return false
-    
-    // Check collision with other tokens
-    if (this.tokens) {
-      for (const token of this.tokens) {
-        // Skip self
-        if (token === this) continue;
-        
-        // Check if another token is at target position
-        if (token.col === targetCol && token.row === targetRow) {
-          logger.debug(`Movement blocked: token collision at (${targetCol}, ${targetRow})`);
-          return false;
-        }
+    this.direction = direction.toLowerCase();
+
+    // Delegate all collision detection (bounds, walls, token occupancy) to canvas
+    if (this.canvas) {
+      if (!this.canvas.canMoveTo(this, targetCol, targetRow)) {
+        logger.debug(`Movement blocked at (${targetCol}, ${targetRow})`);
+        return false;
+      }
+    } else {
+      // Fallback: bounds check only (no canvas reference)
+      if (targetCol < 0 || targetCol >= this.grid.columns ||
+          targetRow < 0 || targetRow >= this.grid.rows) {
+        logger.debug('Movement blocked: out of bounds');
+        return false;
       }
     }
-    
+
     // No collision detected - perform movement
     this.moveTo(targetCol, targetRow);
     
@@ -327,7 +292,8 @@ export class Token extends Entity {
    * @param {number} rotation - Map rotation (not used - x,y already rotated)
    * @param {Grid} grid - Grid instance (not used)
    */
-  render(graphics, viewMode = '2D', rotation = 0, grid = null) {
+  render(graphics, _viewMode, _rotation, _grid) {
+    if (this.useSprite) return;
     // No debug outline for tokens (not needed)
     
     // Convert hex color to Phaser number format
