@@ -1,9 +1,0 @@
-{
-  "permissions": {
-    "allow": [
-      "Bash(\"c:\\\\Users\\\\pman1\\\\Documents\\\\GitHub\\\\Procedural-Game\\\\styles.css\":*)",
-      "Bash(\"c:/Users/pman1/Documents/GitHub/Procedural-Game/styles.css\":*)",
-      "Bash(python -c \"import ast, sys; ast.parse\\(open\\(''sprite_gen.py''\\).read\\(\\)\\); print\\(''syntax OK''\\)\")"
-    ]
-  }
-}
