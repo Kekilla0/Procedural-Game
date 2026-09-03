@@ -474,6 +474,7 @@
             <h1>Project Milestones</h1>
             <div class="save-load-controls">
                 <button class="btn" onclick="exportJSON()">💾 Export JSON</button>
+                <button class="btn" onclick="clearData()">🗑️ Clear</button>
                 <button class="btn" onclick="importJSON()">📂 Import JSON</button>
             </div>
         </header>
@@ -593,6 +594,15 @@
 
         function closeModal() {
             document.getElementById('jsonModal').classList.remove('active');
+        }
+
+        // Clear all data
+        function clearData() {
+            if (!confirm('Clear all phases and notes? This cannot be undone.')) return;
+            projectData = { phases: [], notes: '' };
+            saveData();
+            document.getElementById('notes').value = '';
+            renderPhases();
         }
 
         // Calculate overall progress

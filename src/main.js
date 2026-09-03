@@ -1,39 +1,30 @@
-/**
- * main.js - Entry point for Phaser 3 game
- */
-import { Game } from './core/game.js';
-import { logger } from './utils/logger.js';
-import { roll, rollSingle, rollAdvantage, rollDisadvantage } from './utils/dice.js';
-import { calculate } from './utils/math.js';
+import { ScreenManager } from './screens/screenManager.js';
+import { TitleScreen } from './screens/titleScreen.js';
+import { ViewportScreen } from './screens/viewportScreen.js';
 
-// Phaser 3 configuration
-const config = {
-  type: Phaser.AUTO,
-  width: 800,
-  height: 600,
-  parent: 'game',
-  backgroundColor: '#000000', // Black background (Canvas will draw over this)
-  scene: [Game], // Add Game scene
-  physics: {
-    default: false // We don't need physics
-  }
-};
+const canvas = document.getElementById('viewport');
+const ctx = canvas.getContext('2d');
 
-// Create Phaser game
-const game = new Phaser.Game(config);
+function resizeCanvas() {
+    canvas.width = window.innerWidth;
+    canvas.height = window.innerHeight;
+}
+window.addEventListener('resize', resizeCanvas);
+resizeCanvas();
 
-// Expose to window for debugging
-window.game = game;
-window.logger = logger;
+const manager = new ScreenManager(canvas, ctx);
+manager.register('title', new TitleScreen(manager));
+manager.register('viewport', new ViewportScreen(manager));
+manager.switchTo('title');
 
-// Expose dice and math utilities for testing
-window.roll = roll;
-window.calculate = calculate;
+let lastTime = performance.now();
+function loop(now) {
+    const dt = (now - lastTime) / 1000;
+    lastTime = now;
 
-// Expose scene access for stat updates
-game.events.on('ready', () => {
-  window.gameScene = game.scene.getScene('Game');
-  window.world = window.gameScene.world;
-});
+    manager.update(dt);
+    manager.render();
 
-logger.info('Phaser 3 game initialized');
+    requestAnimationFrame(loop);
+}
+requestAnimationFrame(loop);

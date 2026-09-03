@@ -1,112 +1,13 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Isometric Roguelike</title>
-  
-  <!-- Phaser 3 -->
-  <script src="https://cdn.jsdelivr.net/npm/phaser@3.80.1/dist/phaser.min.js"></script>
-  
-  <!-- CSS -->
-  <link rel="stylesheet" href="styles.css">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Procedural Game</title>
+    <link rel="stylesheet" href="styles.css">
 </head>
 <body>
-  <div id="main-layout">
-    <!-- Left side: Game and controls -->
-    <div id="left-panel">
-      <div id="container">
-        <!-- Game canvas will be inserted here by Phaser -->
-        <div id="game"></div>
-        
-        <!-- Debug panel -->
-        <div id="debug-panel">
-          <h3>Debug Info</h3>
-          <div id="debug-content">
-            <p>Position: <span id="debug-position">(0, 0)</span></p>
-            <p>Grid: <span id="debug-grid">(0, 0)</span></p>
-            <p>Player: <span id="debug-player">(0, 0)</span></p>
-            <p>Zoom: <span id="debug-zoom">100%</span></p>
-            <p>Rotation: <span id="debug-rotation">0°</span></p>
-          </div>
-        </div>
-      </div>
-      
-      <!-- Controls box -->
-      <div id="controls-box">
-        <h3>Controls</h3>
-        <ul>
-          <li><strong>WASD</strong> - Move player</li>
-          <li><strong>Mouse Click</strong> - Move to tile (within range)</li>
-          <li><strong>Q / E</strong> - Rotate map 90° left / right</li>
-          <li><strong>Mouse Wheel</strong> - Zoom in/out</li>
-        </ul>
-        <p style="margin-top: 10px; font-size: 0.9em; color: #888;">
-          Movement resets after 1 second (DEBUG mode)
-        </p>
-        <a href="./MILESTONES.html" target="_blank" style="margin-top: 15px; display: inline-block;">View Milestones</a>
-      </div>
-    </div>
-    
-    <!-- Right side: Player stats -->
-    <div id="stats-panel">
-      <h3>Player Statistics</h3>
-      <div id="stats-content">
-        <div class="stat-group">
-          <h4>Base Stats</h4>
-          <div class="stat-row">
-            <label>Strength:</label>
-            <span id="stat-strength">12</span>
-          </div>
-          <div class="stat-row">
-            <label>Dexterity:</label>
-            <span id="stat-dexterity">14</span>
-          </div>
-          <div class="stat-row">
-            <label>Intelligence:</label>
-            <span id="stat-intelligence">10</span>
-          </div>
-        </div>
-        
-        <div class="stat-group">
-          <h4>Combat Stats</h4>
-          <div class="stat-row">
-            <label>Health:</label>
-            <span id="stat-health">60</span>
-          </div>
-          <div class="stat-row">
-            <label>Defense:</label>
-            <span id="stat-defense">19</span>
-          </div>
-          <div class="stat-row">
-            <label>Initiative:</label>
-            <span id="stat-initiative">10</span>
-          </div>
-        </div>
-        
-        <div class="stat-group">
-          <h4>Other Stats</h4>
-          <div class="stat-row">
-            <label>Capacity:</label>
-            <span id="stat-capacity">24</span>
-          </div>
-          <div class="stat-row">
-            <label>Movement:</label>
-            <span id="stat-movement">6</span>
-          </div>
-          <div class="stat-row">
-            <label>Skill:</label>
-            <span id="stat-skill">10</span>
-          </div>
-        </div>
-      </div>
-    </div>
-  </div>
-
-  <!-- Context menu for interactables (shown on right-click) -->
-  <div id="context-menu"></div>
-
-  <!-- Game script -->
-  <script type="module" src="./src/main.js"></script>
+    <canvas id="viewport"></canvas>
+    <script type="module" src="src/main.js"></script>
 </body>
 </html>
