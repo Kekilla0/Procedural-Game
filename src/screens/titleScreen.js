@@ -1,5 +1,7 @@
 import { SettingsPopup } from '../ui/settingsPopup.js';
+import { ClassSelectPopup } from '../ui/classSelectPopup.js';
 import { hasSaveGame } from '../state/gameSave.js';
+import { settings } from '../state/settings.js';
 
 const BUTTON_WIDTH = 220;
 const BUTTON_HEIGHT = 44;
@@ -18,6 +20,14 @@ export class TitleScreen {
     // "Exit to Title"), not just once at startup.
     onEnter() {
         this.hasSave = hasSaveGame();
+
+        // Debug convenience: skip straight past the title screen. Applies on
+        // every arrival here, so it also fires right back into the game after
+        // "Exit to Title" — that's intentional for rapid dev iteration.
+        if (settings.debug && settings.autoContinue && this.hasSave) {
+            this.manager.getScreen('viewport').loadGame();
+            this.manager.switchTo('viewport');
+        }
     }
 
     onClick(x, y) {
@@ -27,8 +37,14 @@ export class TitleScreen {
         if (!hit) return;
 
         if (hit.id === 'newGame') {
-            this.manager.getScreen('viewport').startNewGame();
-            this.manager.switchTo('viewport');
+            this.manager.openPopup(
+                new ClassSelectPopup({
+                    onSelect: (classId) => {
+                        this.manager.getScreen('viewport').startNewGame(classId);
+                        this.manager.switchTo('viewport');
+                    },
+                })
+            );
         }
         if (hit.id === 'continue') {
             this.manager.getScreen('viewport').loadGame();

@@ -522,10 +522,124 @@
     </div>
 
     <script>
-        // Data structure
+        // Data structure — this default is only used the first time the tracker
+        // loads in a given browser (no localStorage entry yet). Once anything is
+        // saved, loadData() below always prefers localStorage over this default.
         let projectData = {
-            phases: [],
-            notes: ''
+            phases: [
+                {
+                    id: 1,
+                    title: "Phase 1: Foundation & Screens",
+                    status: "Done",
+                    goal: "Restart from scratch on vanilla Canvas 2D — no framework, no assets — with a working screen/popup/settings/save skeleton.",
+                    collapsed: false,
+                    tasks: [
+                        { id: 1, text: "Vanilla Canvas 2D setup (index.html, main.js, game loop) — no engine, no assets", completed: true, level: 0 },
+                        { id: 2, text: "ScreenManager: title/viewport routing, modal popup layer, input dispatch (click/keydown/wheel/contextmenu)", completed: true, level: 0 },
+                        { id: 3, text: "Title screen: Continue / New Game / Settings", completed: true, level: 0 },
+                        { id: 4, text: "Reusable Popup base class (backdrop, close button, click-outside-to-close, Escape)", completed: true, level: 0 },
+                        { id: 5, text: "Settings popup with Debug mode + indented debug-only sub-options", completed: true, level: 0 },
+                        { id: 6, text: "localStorage save/load — settings and game state persisted separately", completed: true, level: 0 },
+                        { id: 7, text: "UI Scale setting (50%-200%, scoped to the HUD)", completed: true, level: 0 },
+                        { id: 8, text: "Git hygiene: .claude/ untracked, OLD/ prototype gitignored as reference only", completed: true, level: 0 }
+                    ]
+                },
+                {
+                    id: 2,
+                    title: "Phase 2: Viewport, Camera & Movement",
+                    status: "Done",
+                    goal: "A movable player on a scrolling grid, in both top-down and isometric projection.",
+                    collapsed: false,
+                    tasks: [
+                        { id: 1, text: "Top-down and isometric rendering, toggle via debug setting", completed: true, level: 0 },
+                        { id: 2, text: "Grid-locked tile movement (steps between tile centers, not free-floating)", completed: true, level: 0 },
+                        { id: 3, text: "Camera-follow with a 10px bordered viewport frame", completed: true, level: 0 },
+                        { id: 4, text: "Debug coordinate HUD readout (col/row)", completed: true, level: 0 }
+                    ]
+                },
+                {
+                    id: 3,
+                    title: "Phase 3: HUD",
+                    status: "Done",
+                    goal: "Diablo-style HUD bar plus Character/Talent/Inventory docked panels.",
+                    collapsed: false,
+                    tasks: [
+                        { id: 1, text: "Health/Energy orbs, 6 action slots, XP bar", completed: true, level: 0 },
+                        { id: 2, text: "Character / Talent / Inventory docked side panels (not modal popups)", completed: true, level: 0 },
+                        { id: 3, text: "Dynamic panel sizing — grows with the window; single-panel mode on narrow windows", completed: true, level: 0 },
+                        { id: 4, text: "Character sheet: Diablo 3-style 3-column equipment grid (13 named slots)", completed: true, level: 0 },
+                        { id: 5, text: "Character sheet: Attributes section (2/3 equipment / 1/3 attributes split)", completed: true, level: 0 },
+                        { id: 6, text: "Talents panel: General / Primary / Secondary columns (placeholder, no real talents yet)", completed: true, level: 0 }
+                    ]
+                },
+                {
+                    id: 4,
+                    title: "Phase 4: World, Walls, Doors & Collision",
+                    status: "Done",
+                    goal: "Edge-based walls, bounded levels, and a generic interact system doors/entities both use.",
+                    collapsed: false,
+                    tasks: [
+                        { id: 1, text: "Edge-based wall model (not tile-based) — bounded levels", completed: true, level: 0 },
+                        { id: 2, text: "Collision: walls, blocking vs. non-blocking entities, diagonal corner-blocking", completed: true, level: 0 },
+                        { id: 3, text: "Doors: dedicated interact action (no bump-to-open), solid/dashed rendering for closed/open", completed: true, level: 0 },
+                        { id: 4, text: "Generic interact system: 'E' key + click, 8-directional entity adjacency (doors stay orthogonal-only)", completed: true, level: 0 },
+                        { id: 5, text: "Debug collision overlay (tints blocked neighbor tiles)", completed: true, level: 0 },
+                        { id: 6, text: "Hand-built test level (temporary scaffolding, to be replaced by procedural generation)", completed: true, level: 0 }
+                    ]
+                },
+                {
+                    id: 5,
+                    title: "Phase 5: Items, Inventory & Containers",
+                    status: "Done",
+                    goal: "A real grid-based inventory (variable item footprints), ground loot, containers, and item management.",
+                    collapsed: false,
+                    tasks: [
+                        { id: 1, text: "Grid-based inventory (items occupy WxH cells, not fixed 1-item slots)", completed: true, level: 0 },
+                        { id: 2, text: "Item type registry: helm, sword, belt, chest armor, health/energy potions, gold", completed: true, level: 0 },
+                        { id: 3, text: "Stackable items with max stack sizes", completed: true, level: 0 },
+                        { id: 4, text: "Ground item looting (click or 'E', only if inventory has room)", completed: true, level: 0 },
+                        { id: 5, text: "Lootable containers: secondary inventory view, per-item loot + Loot All", completed: true, level: 0 },
+                        { id: 6, text: "Right-click context menu: Delete / Delete All (stackable only)", completed: true, level: 0 },
+                        { id: 7, text: "Debug tools: refill containers on close, auto-continue on (re)start, auto-open menu on start", completed: true, level: 0 }
+                    ]
+                },
+                {
+                    id: 6,
+                    title: "Phase 6: Equipment & Character Stats",
+                    status: "Not Started",
+                    goal: "Make the character sheet's equipment slots and Attributes panel real instead of placeholders.",
+                    collapsed: false,
+                    tasks: [
+                        { id: 1, text: "Drag-and-drop items from inventory onto character-sheet equipment slots", completed: false, level: 0 },
+                        { id: 2, text: "List and organize all character stats in the Attributes panel", completed: false, level: 0 },
+                        { id: 3, text: "Basic item attributes/affixes that affect player stats once equipped", completed: false, level: 0 }
+                    ]
+                },
+                {
+                    id: 7,
+                    title: "Phase 7: Combat & Enemies",
+                    status: "Not Started",
+                    goal: "Give the 6 HUD action slots something to do, and make the health/energy orbs mean something.",
+                    collapsed: false,
+                    tasks: [
+                        { id: 1, text: "Enemy entities with basic AI", completed: false, level: 0 },
+                        { id: 2, text: "Combat resolution tied to action-bar abilities", completed: false, level: 0 },
+                        { id: 3, text: "Real health/mana driving the HUD orbs (currently hardcoded 100/100)", completed: false, level: 0 }
+                    ]
+                },
+                {
+                    id: 8,
+                    title: "Phase 8: Procedural Generation",
+                    status: "Not Started",
+                    goal: "Replace the hand-built test room with real generation — bounded, quest-oriented dungeons (the project's namesake feature).",
+                    collapsed: false,
+                    tasks: [
+                        { id: 1, text: "Design a level format the generator outputs (walls/entities/bounds) — testLevel.js is scaffolding, not the target format", completed: false, level: 0 },
+                        { id: 2, text: "Basic room/dungeon generator", completed: false, level: 0 }
+                    ]
+                }
+            ],
+            notes: "Session 2026-09-02 -> 2026-09-03: restarted the project from scratch on vanilla Canvas 2D (previous Phaser prototype archived to gitignored OLD/). Built up through Phases 1-5 across the session; view style (top-down vs isometric) stayed an open toggle rather than a final decision. Phases 6-8 are the discussed-but-not-started next steps, in the order the user asked for on items (equipment/stats before combat before procgen)."
         };
 
         let draggedTask = null;
